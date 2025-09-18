@@ -4,7 +4,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { MapPin, Phone, Mail, Send } from "lucide-react";
+import { Mail, Send, Linkedin } from "lucide-react";
 
 const ContactSection = () => {
   return (
@@ -25,46 +25,28 @@ const ContactSection = () => {
           <div className="space-y-8">
             <Card className="border-border">
               <CardHeader>
-                <CardTitle className="flex items-center text-navy">
-                  <MapPin className="w-5 h-5 mr-2 text-primary" />
-                  Our Locations
-                </CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <h4 className="font-semibold text-navy mb-2">Toronto Office</h4>
-                  <p className="text-muted-foreground">
-                    123 Bay Street, Suite 2500<br />
-                    Toronto, ON M5H 2Y4
-                  </p>
-                </div>
-                <div>
-                  <h4 className="font-semibold text-navy mb-2">Vancouver Office</h4>
-                  <p className="text-muted-foreground">
-                    1055 West Georgia Street<br />
-                    Vancouver, BC V6E 3P3
-                  </p>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card className="border-border">
-              <CardHeader>
                 <CardTitle className="text-navy">Get in Touch</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Phone className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-medium text-navy">Phone</p>
-                    <p className="text-muted-foreground">1-800-AI-CANADA</p>
-                  </div>
-                </div>
                 <div className="flex items-center space-x-3">
                   <Mail className="w-5 h-5 text-primary" />
                   <div>
                     <p className="font-medium text-navy">Email</p>
                     <p className="text-muted-foreground">patrick@aiforcanadians.org</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Linkedin className="w-5 h-5 text-primary" />
+                  <div>
+                    <p className="font-medium text-navy">LinkedIn</p>
+                    <a 
+                      href="https://linkedin.com/in/patrickfarrar" 
+                      target="_blank" 
+                      rel="noopener noreferrer"
+                      className="text-blue-600 hover:underline"
+                    >
+                      linkedin.com/in/patrickfarrar
+                    </a>
                   </div>
                 </div>
               </CardContent>

@@ -2,7 +2,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Check, Calendar } from "lucide-react";
+import { Clock, Check, Calendar, Linkedin } from "lucide-react";
+import patrickImage from "@/assets/patrick.jpeg";
+import darcyImage from "@/assets/darcy.jpeg";
+import ryanImage from "@/assets/ryan.jpeg";
+import anshulaImage from "@/assets/anshula.jpeg";
+import ashokImage from "@/assets/ashok.jpeg";
 
 const CoachingSection = () => {
   const services = [
@@ -47,6 +52,34 @@ const CoachingSection = () => {
     }
   ];
 
+  const coaches = [
+    {
+      name: "Patrick Farrar",
+      image: patrickImage,
+      linkedin: "https://linkedin.com/in/patrickfarrar"
+    },
+    {
+      name: "Darcy Norman", 
+      image: darcyImage,
+      linkedin: "https://linkedin.com/in/darcynorman"
+    },
+    {
+      name: "Anshula Chowdhury",
+      image: anshulaImage,
+      linkedin: "https://linkedin.com/in/anshulachowdhury"
+    },
+    {
+      name: "Ryan Oneil Knight",
+      image: ryanImage,
+      linkedin: "https://linkedin.com/in/ryanoneilknight"
+    },
+    {
+      name: "Ashok Ranade",
+      image: ashokImage,
+      linkedin: "https://linkedin.com/in/ashokranade"
+    }
+  ];
+
   return (
     <section id="coaching" className="py-20 px-4 bg-muted/30">
       <div className="container mx-auto max-w-7xl">
@@ -54,67 +87,52 @@ const CoachingSection = () => {
           <h2 className="text-4xl font-bold text-navy mb-4">
             Personalized AI Coaching for Canadian Leaders
           </h2>
-          <p className="text-xl text-blue-text max-w-3xl mx-auto">
+          <p className="text-xl text-blue-text max-w-3xl mx-auto mb-12">
             Get expert guidance tailored to your business needs. Our experienced coaches 
             understand the Canadian market and regulatory landscape.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-          {/* Coach Profile */}
-          <Card className="lg:col-span-1 border-border">
-            <CardHeader className="text-center pb-4">
-              <Avatar className="w-20 h-20 mx-auto mb-4">
-                <AvatarImage src="/placeholder-coach.jpg" alt="Patrick Farrar" />
-                <AvatarFallback className="bg-primary text-primary-foreground text-xl font-bold">
-                  PF
-                </AvatarFallback>
-              </Avatar>
-              <h3 className="text-2xl font-bold text-navy">Patrick Farrar</h3>
-              <p className="text-blue-text">Business Development & AI Strategy Consultant</p>
-              <div className="flex items-center justify-center mt-2">
-                <div className="flex text-yellow-400">
-                  {[...Array(5)].map((_, i) => (
-                    <svg key={i} className="w-4 h-4 fill-current" viewBox="0 0 20 20">
-                      <path d="M9.049 2.927c.3-.921 1.603-.921 1.902 0l1.07 3.292a1 1 0 00.95.69h3.462c.969 0 1.371 1.24.588 1.81l-2.8 2.034a1 1 0 00-.364 1.118l1.07 3.292c.3.921-.755 1.688-1.54 1.118l-2.8-2.034a1 1 0 00-1.175 0l-2.8 2.034c-.784.57-1.838-.197-1.539-1.118l1.07-3.292a1 1 0 00-.364-1.118L2.98 8.72c-.783-.57-.38-1.81.588-1.81h3.461a1 1 0 00.951-.69l1.07-3.292z"/>
-                    </svg>
-                  ))}
-                </div>
-                <span className="ml-2 text-sm text-muted-foreground">4.9/5 (127 reviews)</span>
-              </div>
-            </CardHeader>
-            <CardContent>
-              <p className="text-muted-foreground text-center leading-relaxed mb-6">
-                Patrick has helped over 500 businesses and individuals with talent and business 
-                development, leveraging AI to make an impact where it's needed most. His expertise lies 
-                in connecting the right people with the right opportunities and driving strategic growth 
-                through innovative solutions.
-              </p>
-              <div className="flex flex-wrap gap-2 justify-center mb-6">
-                {["Business Development", "Talent Strategy", "AI Implementation", "Strategic Growth"].map((skill) => (
-                  <Badge key={skill} variant="secondary" className="bg-secondary text-secondary-foreground">
-                    {skill}
-                  </Badge>
-                ))}
-              </div>
-              <div className="space-y-3">
-                <Button 
-                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground"
+        {/* Coaches Grid */}
+        <div className="mb-16">
+          <h3 className="text-2xl font-bold text-navy text-center mb-8">Our Expert Coaches</h3>
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
+            {coaches.map((coach, index) => (
+              <div key={index} className="text-center">
+                <a 
+                  href={coach.linkedin} 
+                  target="_blank" 
+                  rel="noopener noreferrer"
+                  className="block group"
                 >
-                  Book Free Consultation
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full border-muted-foreground text-muted-foreground hover:bg-muted"
-                >
-                  Apply to be a Coach
-                </Button>
+                  <Avatar className="w-20 h-20 mx-auto mb-3 ring-2 ring-transparent group-hover:ring-primary transition-all">
+                    <AvatarImage src={coach.image} alt={coach.name} />
+                    <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
+                      {coach.name.split(' ').map(n => n[0]).join('')}
+                    </AvatarFallback>
+                  </Avatar>
+                  <h4 className="text-sm font-semibold text-navy group-hover:text-primary transition-colors">
+                    {coach.name}
+                  </h4>
+                  <Linkedin className="w-4 h-4 mx-auto mt-2 text-blue-600 opacity-60 group-hover:opacity-100 transition-opacity" />
+                </a>
               </div>
-            </CardContent>
-          </Card>
+            ))}
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-3 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                <span className="text-2xl text-muted-foreground/50">+</span>
+              </div>
+              <h4 className="text-sm font-semibold text-muted-foreground">
+                More to come
+              </h4>
+            </div>
+          </div>
+        </div>
 
-          {/* Services */}
-          <div className="lg:col-span-2 space-y-6">
+        {/* Services */}
+        <div className="space-y-8">
+          <h3 className="text-3xl font-bold text-navy text-center">Some of the services we offer</h3>
+          <div className="space-y-6">
             {services.map((service, index) => (
               <Card key={index} className="border-border hover:shadow-md transition-shadow">
                 <CardHeader>
