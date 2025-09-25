@@ -85,7 +85,7 @@ const CoachingSection = () => {
       <div className="container mx-auto max-w-7xl">
         <div className="text-center mb-12">
           <h2 className="text-4xl font-bold text-navy mb-4">
-            Navigation
+            Personalized AI Coaching for Canadian Leaders
           </h2>
           <p className="text-xl text-blue-text max-w-3xl mx-auto mb-12">
             Get expert guidance tailored to your business needs. Our experienced coaches 
