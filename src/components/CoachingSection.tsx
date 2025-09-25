@@ -56,7 +56,7 @@ const CoachingSection = () => {
 
         {/* Coaches Grid */}
         <div className="mb-16">
-          <h3 className="text-2xl font-bold text-navy text-center mb-8">Our Expert Coaches</h3>
+          <h3 className="text-2xl font-bold text-navy text-center mb-8">Expert Navigators and Coaches</h3>
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
             {coaches.map((coach, index) => (
               <div key={index} className="text-center">
@@ -88,6 +88,20 @@ const CoachingSection = () => {
               </h4>
             </div>
           </div>
+        </div>
+
+        {/* Apply to be an expert button */}
+        <div className="text-center mb-16">
+          <Button 
+            asChild
+            variant="outline"
+            size="lg"
+            className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+          >
+            <a href="mailto:patrick@aiforcanadians.org?subject=I want to be an Canadian AI Expert!">
+              Apply to be an expert
+            </a>
+          </Button>
         </div>
 
         {/* Contact Form */}
