@@ -1,8 +1,6 @@
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Clock, Check, Calendar, Linkedin } from "lucide-react";
+import { Linkedin } from "lucide-react";
 import patrickImage from "@/assets/patrick.jpeg";
 import darcyImage from "@/assets/darcy.jpeg";
 import ryanImage from "@/assets/ryan.jpeg";
@@ -10,48 +8,6 @@ import anshulaImage from "@/assets/anshula.jpeg";
 import ashokImage from "@/assets/ashok.jpeg";
 
 const CoachingSection = () => {
-  const services = [
-    {
-      title: "AI Strategy Consultation",
-      description: "Develop a comprehensive AI adoption strategy tailored to your Canadian business needs and regulatory requirements.",
-      duration: "2 hours",
-      pricing: "On Request",
-      features: [
-        "Custom AI roadmap",
-        "Competitive analysis", 
-        "ROI projections",
-        "Implementation timeline"
-      ],
-      icon: <Calendar className="h-5 w-5" />
-    },
-    {
-      title: "Team AI Training",
-      description: "Hands-on workshops to upskill your team on AI tools and best practices for your specific industry.",
-      duration: "Half or full day",
-      pricing: "On Request", 
-      features: [
-        "Customized curriculum",
-        "Practical exercises",
-        "Industry-specific examples",
-        "Follow-up support"
-      ],
-      icon: <Clock className="h-5 w-5" />
-    },
-    {
-      title: "Ongoing AI Mentorship",
-      description: "Monthly guidance sessions to support your AI journey with expert advice and troubleshooting.",
-      duration: "Monthly sessions",
-      pricing: "On Request",
-      features: [
-        "Monthly 1-on-1 calls",
-        "Email support",
-        "Resource recommendations", 
-        "Progress tracking"
-      ],
-      icon: <Check className="h-5 w-5" />
-    }
-  ];
-
   const coaches = [
     {
       name: "Patrick Farrar",
@@ -129,49 +85,17 @@ const CoachingSection = () => {
           </div>
         </div>
 
-        {/* Services */}
-        <div className="space-y-8">
-          <h3 className="text-3xl font-bold text-navy text-center">Some of the services we offer</h3>
-          <div className="space-y-6">
-            {services.map((service, index) => (
-              <Card key={index} className="border-border hover:shadow-md transition-shadow">
-                <CardHeader>
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="flex items-center space-x-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-lg flex items-center justify-center text-primary">
-                        {service.icon}
-                      </div>
-                      <div>
-                        <h3 className="text-xl font-semibold text-navy">{service.title}</h3>
-                        <div className="flex items-center space-x-4 text-sm text-blue-text mt-1">
-                          <span className="flex items-center">
-                            <Clock className="w-4 h-4 mr-1" />
-                            {service.duration}
-                          </span>
-                          <span className="font-medium">{service.pricing}</span>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
-                  <p className="text-muted-foreground leading-relaxed">
-                    {service.description}
-                  </p>
-                </CardHeader>
-                <CardContent>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                    {service.features.map((feature, featureIndex) => (
-                      <div key={featureIndex} className="flex items-center space-x-2">
-                        <div className="w-4 h-4 rounded-full bg-success/20 flex items-center justify-center">
-                          <Check className="w-3 h-3 text-success" />
-                        </div>
-                        <span className="text-sm text-muted-foreground">{feature}</span>
-                      </div>
-                    ))}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
+        {/* Call to Action */}
+        <div className="text-center">
+          <Button 
+            asChild
+            size="lg"
+            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
+          >
+            <a href="mailto:patrick@aiforcanadians.org?subject=Start My AI Journey">
+              Start Your AI Journey Today
+            </a>
+          </Button>
         </div>
       </div>
     </section>
