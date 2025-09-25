@@ -88,7 +88,7 @@ const CoachingSection = () => {
             Personalized AI Navigation for Canadian Leaders
           </h2>
           <p className="text-xl text-blue-text max-w-3xl mx-auto mb-12">
-            Get expert guidance tailored to your business needs. Our experienced coaches 
+            Get expert guidance tailored to your business needs. Our experienced navigators and coaches 
             understand the Canadian market and regulatory landscape.
           </p>
         </div>
