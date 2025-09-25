@@ -1,6 +1,11 @@
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Linkedin } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Linkedin, Send } from "lucide-react";
 import patrickImage from "@/assets/patrick.jpeg";
 import darcyImage from "@/assets/darcy.jpeg";
 import ryanImage from "@/assets/ryan.jpeg";
@@ -85,17 +90,102 @@ const CoachingSection = () => {
           </div>
         </div>
 
-        {/* Call to Action */}
-        <div className="text-center">
-          <Button 
-            asChild
-            size="lg"
-            className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-4 text-lg"
-          >
-            <a href="mailto:patrick@aiforcanadians.org?subject=Start My AI Journey">
-              Start Your AI Journey Today
-            </a>
-          </Button>
+        {/* Contact Form */}
+        <div className="max-w-2xl mx-auto">
+          <Card className="border-border">
+            <CardHeader>
+              <CardTitle className="text-navy text-center">Start Your AI Journey Today</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-6">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label htmlFor="firstName" className="text-navy">First Name *</Label>
+                  <Input 
+                    id="firstName" 
+                    placeholder="Enter your first name"
+                    className="border-input"
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="lastName" className="text-navy">Last Name *</Label>
+                  <Input 
+                    id="lastName" 
+                    placeholder="Enter your last name"
+                    className="border-input"
+                  />
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="email" className="text-navy">Email Address *</Label>
+                <Input 
+                  id="email" 
+                  type="email"
+                  placeholder="Enter your email address"
+                  className="border-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="company" className="text-navy">Company Name</Label>
+                <Input 
+                  id="company" 
+                  placeholder="Enter your company name"
+                  className="border-input"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="role" className="text-navy">Your Role</Label>
+                <Select>
+                  <SelectTrigger className="border-input">
+                    <SelectValue placeholder="Select your role" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ceo">CEO/Founder</SelectItem>
+                    <SelectItem value="cto">CTO/Technical Lead</SelectItem>
+                    <SelectItem value="manager">Manager</SelectItem>
+                    <SelectItem value="consultant">Consultant</SelectItem>
+                    <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
+                    <SelectItem value="other">Other</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="interest" className="text-navy">Area of Interest</Label>
+                <Select>
+                  <SelectTrigger className="border-input">
+                    <SelectValue placeholder="What interests you most?" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="strategy">AI Strategy</SelectItem>
+                    <SelectItem value="training">Team Training</SelectItem>
+                    <SelectItem value="implementation">AI Implementation</SelectItem>
+                    <SelectItem value="mentorship">Ongoing Mentorship</SelectItem>
+                    <SelectItem value="resources">Resource Access</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="goals" className="text-navy">Tell us about your AI goals</Label>
+                <Textarea 
+                  id="goals"
+                  placeholder="Describe your current challenges and what you hope to achieve with AI..."
+                  className="border-input min-h-[100px]"
+                />
+              </div>
+
+              <Button 
+                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3"
+                size="lg"
+              >
+                Send Message
+                <Send className="ml-2 h-4 w-4" />
+              </Button>
+            </CardContent>
+          </Card>
         </div>
       </div>
     </section>
