@@ -2,10 +2,11 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { ExternalLink } from "lucide-react";
+import { ExternalLink, ChevronDown } from "lucide-react";
 
 const ResourcesSection = () => {
-  const [activeCategory, setActiveCategory] = useState("All Resources");
+  const [activeCategory, setActiveCategory] = useState("Programs");
+  const [showAll, setShowAll] = useState(false);
 
   const categories = [
     { name: "All Resources" },
@@ -324,6 +325,9 @@ const ResourcesSection = () => {
   const filteredResources = activeCategory === "All Resources" 
     ? resources 
     : resources.filter(resource => resource.category === activeCategory);
+  
+  const displayedResources = showAll ? filteredResources : filteredResources.slice(0, 6);
+  const hasMore = filteredResources.length > 6;
 
   return (
     <section id="resources" className="py-20 px-4 bg-background">
@@ -349,7 +353,10 @@ const ResourcesSection = () => {
                   ? "bg-primary hover:bg-primary/90 text-primary-foreground"
                   : "border-muted-foreground text-muted-foreground hover:bg-muted"
               }
-              onClick={() => setActiveCategory(category.name)}
+              onClick={() => {
+                setActiveCategory(category.name);
+                setShowAll(false);
+              }}
             >
               {category.name}
             </Button>
@@ -358,7 +365,7 @@ const ResourcesSection = () => {
 
         {/* Resources Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredResources.map((resource, index) => (
+          {displayedResources.map((resource, index) => (
             <Card
               key={index}
               className={`group hover:shadow-lg transition-all duration-300 ${
@@ -413,6 +420,20 @@ const ResourcesSection = () => {
             </Card>
           ))}
         </div>
+
+        {/* See More Button */}
+        {hasMore && !showAll && (
+          <div className="text-center mt-8">
+            <Button
+              variant="outline"
+              onClick={() => setShowAll(true)}
+              className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
+            >
+              See More Resources
+              <ChevronDown className="ml-2 h-4 w-4" />
+            </Button>
+          </div>
+        )}
       </div>
     </section>
   );

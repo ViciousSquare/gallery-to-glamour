@@ -60,23 +60,12 @@ const CoachingSection = () => {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
             {coaches.map((coach, index) => (
               <div key={index} className="text-center">
-                <a 
-                  href={coach.linkedin} 
-                  target="_blank" 
-                  rel="noopener noreferrer"
-                  className="block group"
-                >
-                  <Avatar className="w-20 h-20 mx-auto mb-3 ring-2 ring-transparent group-hover:ring-primary transition-all">
-                    <AvatarImage src={coach.image} alt={coach.name} />
-                    <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
-                      {coach.name.split(' ').map(n => n[0]).join('')}
-                    </AvatarFallback>
-                  </Avatar>
-                  <h4 className="text-sm font-semibold text-navy group-hover:text-primary transition-colors">
-                    {coach.name}
-                  </h4>
-                  <Linkedin className="w-4 h-4 mx-auto mt-2 text-blue-600 opacity-60 group-hover:opacity-100 transition-opacity" />
-                </a>
+                <Avatar className="w-20 h-20 mx-auto">
+                  <AvatarImage src={coach.image} alt={coach.name} />
+                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
+                    {coach.name.split(' ').map(n => n[0]).join('')}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             ))}
             <div className="text-center">
@@ -108,7 +97,7 @@ const CoachingSection = () => {
         <div className="max-w-2xl mx-auto">
           <Card className="border-border">
             <CardHeader>
-              <CardTitle className="text-navy text-center">Start Your AI Journey Today</CardTitle>
+              <CardTitle className="text-navy text-center">Start Your AI Journey Today - Get Connected to a Navigator</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
