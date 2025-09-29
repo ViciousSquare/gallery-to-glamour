@@ -87,7 +87,7 @@ const CoachingSection = () => {
             size="lg"
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
           >
-            <a href="mailto:patrick@aiforcanadians.org?subject=I want to be an Canadian AI Expert!">
+            <a href="#contact">
               Apply to be an expert
             </a>
           </Button>
@@ -167,6 +167,7 @@ const CoachingSection = () => {
                     <SelectItem value="implementation">AI Implementation</SelectItem>
                     <SelectItem value="mentorship">Ongoing Mentorship</SelectItem>
                     <SelectItem value="resources">Resource Access</SelectItem>
+                    <SelectItem value="coach">Being a Coach</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

@@ -1,4 +1,4 @@
-import { MapPin, Phone, Mail } from "lucide-react";
+import { MapPin, Mail } from "lucide-react";
 
 const Footer = () => {
   return (
@@ -96,16 +96,9 @@ const Footer = () => {
                 </div>
               </div>
               <div className="flex items-start space-x-3">
-                <Phone className="w-5 h-5 text-primary mt-0.5" />
-                <div>
-                  <p className="text-navy-foreground/80">1-800-AI-CANADA</p>
-                </div>
-              </div>
-              <div className="flex items-start space-x-3">
                 <MapPin className="w-5 h-5 text-primary mt-0.5" />
                 <div>
                   <p className="text-navy-foreground/80">
-                    Toronto & Vancouver<br />
                     Serving all of Canada
                   </p>
                 </div>

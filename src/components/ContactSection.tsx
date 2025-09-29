@@ -126,6 +126,7 @@ const ContactSection = () => {
                     <SelectItem value="implementation">AI Implementation</SelectItem>
                     <SelectItem value="mentorship">Ongoing Mentorship</SelectItem>
                     <SelectItem value="resources">Resource Access</SelectItem>
+                    <SelectItem value="coach">Being a Coach</SelectItem>
                   </SelectContent>
                 </Select>
               </div>

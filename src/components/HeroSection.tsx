@@ -18,19 +18,23 @@ const HeroSection = () => {
         
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
           <Button 
+            asChild
             size="lg" 
             className="bg-primary hover:bg-primary/90 text-primary-foreground px-8 py-3 text-lg"
           >
-            Start Your AI Journey
-            <ArrowRight className="ml-2 h-5 w-5" />
+            <a href="#contact">
+              Start Your AI Journey
+              <ArrowRight className="ml-2 h-5 w-5" />
+            </a>
           </Button>
           
           <Button 
+            asChild
             variant="outline" 
             size="lg"
             className="border-muted-foreground text-muted-foreground hover:bg-muted px-8 py-3 text-lg"
           >
-            Explore Resources
+            <a href="#resources">Explore Resources</a>
           </Button>
         </div>
         

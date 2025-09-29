@@ -19,16 +19,13 @@ const Header = () => {
             <a href="#coaching" className="text-foreground hover:text-primary transition-colors">
               Coaching
             </a>
-            <a href="#about" className="text-foreground hover:text-primary transition-colors">
-              About
-            </a>
             <a href="#contact" className="text-foreground hover:text-primary transition-colors">
               Contact
             </a>
           </nav>
           
-          <Button variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground">
-            Get Started
+          <Button asChild variant="default" className="bg-primary hover:bg-primary/90 text-primary-foreground">
+            <a href="#contact">Get Started</a>
           </Button>
         </div>
       </div>
