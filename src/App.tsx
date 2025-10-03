@@ -11,6 +11,8 @@ import Login from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AddResource from "./pages/admin/AddResource";
 import EditResource from "./pages/admin/EditResource";
+import AddCoach from "./pages/admin/AddCoach";
+import EditCoach from "./pages/admin/EditCoach";
 
 const queryClient = new QueryClient();
 
@@ -45,6 +47,22 @@ const App = () => (
               element={
                 <ProtectedRoute>
                   <EditResource />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/coaches/new" 
+              element={
+                <ProtectedRoute>
+                  <AddCoach />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/admin/coaches/:id/edit" 
+              element={
+                <ProtectedRoute>
+                  <EditCoach />
                 </ProtectedRoute>
               } 
             />

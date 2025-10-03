@@ -13,6 +13,8 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 interface Resource {
   id: string;
@@ -27,18 +29,32 @@ interface Resource {
   created_at: string;
 }
 
+interface Coach {
+  id: string;
+  name: string;
+  bio: string | null;
+  image_url: string | null;
+  linkedin_url: string | null;
+  display_order: number;
+  active: boolean;
+  created_at: string;
+}
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [resources, setResources] = useState<Resource[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [loadingResources, setLoadingResources] = useState(true);
+  const [loadingCoaches, setLoadingCoaches] = useState(true);
 
   useEffect(() => {
     fetchResources();
+    fetchCoaches();
   }, []);
 
   const fetchResources = async () => {
-    setLoading(true);
+    setLoadingResources(true);
     const { data, error } = await supabase
       .from('resources')
       .select('*')
@@ -49,10 +65,25 @@ export default function AdminDashboard() {
     } else {
       setResources(data || []);
     }
-    setLoading(false);
+    setLoadingResources(false);
   };
 
-  const handleDelete = async (id: string, title: string) => {
+  const fetchCoaches = async () => {
+    setLoadingCoaches(true);
+    const { data, error } = await supabase
+      .from('coaches')
+      .select('*')
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching coaches:', error);
+    } else {
+      setCoaches(data || []);
+    }
+    setLoadingCoaches(false);
+  };
+
+  const handleDeleteResource = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) {
       return;
     }
@@ -65,8 +96,24 @@ export default function AdminDashboard() {
     if (error) {
       alert(`Error deleting resource: ${error.message}`);
     } else {
-      // Refresh the list after deleting
       fetchResources();
+    }
+  };
+
+  const handleDeleteCoach = async (id: string, name: string) => {
+    if (!confirm(`Are you sure you want to delete coach "${name}"?`)) {
+      return;
+    }
+
+    const { error } = await supabase
+      .from('coaches')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      alert(`Error deleting coach: ${error.message}`);
+    } else {
+      fetchCoaches();
     }
   };
 
@@ -94,81 +141,175 @@ export default function AdminDashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle>Resources</CardTitle>
-            <Button onClick={() => navigate('/admin/resources/new')}>
-              Add New Resource
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {loading ? (
-              <div className="text-center py-8">Loading resources...</div>
-            ) : resources.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
-                No resources found. Add your first resource!
-              </div>
-            ) : (
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>Title</TableHead>
-                      <TableHead>Category</TableHead>
-                      <TableHead>Tags</TableHead>
-                      <TableHead>Featured</TableHead>
-                      <TableHead>Actions</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {resources.map((resource) => (
-                      <TableRow key={resource.id}>
-                        <TableCell className="font-medium">
-                          {resource.title}
-                        </TableCell>
-                        <TableCell>{resource.category}</TableCell>
-                        <TableCell>
-                          <div className="flex gap-1 flex-wrap">
-                            {resource.tags.map((tag) => (
-                              <Badge key={tag} variant="secondary">
-                                {tag}
-                              </Badge>
-                            ))}
-                          </div>
-                        </TableCell>
-                        <TableCell>
-                          {resource.featured ? (
-                            <Badge>Featured</Badge>
-                          ) : (
-                            <span className="text-muted-foreground">-</span>
-                          )}
-                        </TableCell>
-                        <TableCell>
-                          <div className="flex gap-2">
-                            <Button
-                              variant="outline"
-                              size="sm"
-                              onClick={() => navigate(`/admin/resources/${resource.id}/edit`)}
-                            >
-                              Edit
-                            </Button>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              onClick={() => handleDelete(resource.id, resource.title)}
-                            >
-                              Delete
-                            </Button>
-                          </div>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+        <Tabs defaultValue="resources" className="w-full">
+          <TabsList className="mb-8">
+            <TabsTrigger value="resources">Resources</TabsTrigger>
+            <TabsTrigger value="coaches">Coaches</TabsTrigger>
+          </TabsList>
+
+          {/* Resources Tab */}
+          <TabsContent value="resources">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Resources</CardTitle>
+                <Button onClick={() => navigate('/admin/resources/new')}>
+                  Add New Resource
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {loadingResources ? (
+                  <div className="text-center py-8">Loading resources...</div>
+                ) : resources.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No resources found. Add your first resource!
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Title</TableHead>
+                          <TableHead>Category</TableHead>
+                          <TableHead>Tags</TableHead>
+                          <TableHead>Featured</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {resources.map((resource) => (
+                          <TableRow key={resource.id}>
+                            <TableCell className="font-medium">
+                              {resource.title}
+                            </TableCell>
+                            <TableCell>{resource.category}</TableCell>
+                            <TableCell>
+                              <div className="flex gap-1 flex-wrap">
+                                {resource.tags.map((tag) => (
+                                  <Badge key={tag} variant="secondary">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {resource.featured ? (
+                                <Badge>Featured</Badge>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/admin/resources/${resource.id}/edit`)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteResource(resource.id, resource.title)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Coaches Tab */}
+          <TabsContent value="coaches">
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <CardTitle>Coaches</CardTitle>
+                <Button onClick={() => navigate('/admin/coaches/new')}>
+                  Add New Coach
+                </Button>
+              </CardHeader>
+              <CardContent>
+                {loadingCoaches ? (
+                  <div className="text-center py-8">Loading coaches...</div>
+                ) : coaches.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No coaches found. Add your first coach!
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Order</TableHead>
+                          <TableHead>Photo</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Bio</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {coaches.map((coach) => (
+                          <TableRow key={coach.id}>
+                            <TableCell>{coach.display_order}</TableCell>
+                            <TableCell>
+                              <Avatar className="w-10 h-10">
+                                {coach.image_url && (
+                                  <AvatarImage src={coach.image_url} alt={coach.name} />
+                                )}
+                                <AvatarFallback>
+                                  {coach.name.split(' ').map(n => n[0]).join('')}
+                                </AvatarFallback>
+                              </Avatar>
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {coach.name}
+                            </TableCell>
+                            <TableCell className="max-w-xs truncate">
+                              {coach.bio || '-'}
+                            </TableCell>
+                            <TableCell>
+                              {coach.active ? (
+                                <Badge>Active</Badge>
+                              ) : (
+                                <Badge variant="secondary">Inactive</Badge>
+                              )}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => navigate(`/admin/coaches/${coach.id}/edit`)}
+                                >
+                                  Edit
+                                </Button>
+                                <Button
+                                  variant="destructive"
+                                  size="sm"
+                                  onClick={() => handleDeleteCoach(coach.id, coach.name)}
+                                >
+                                  Delete
+                                </Button>
+                              </div>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </main>
     </div>
   );

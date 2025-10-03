@@ -1,3 +1,4 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -5,41 +6,45 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Linkedin, Send } from "lucide-react";
-import patrickImage from "@/assets/patrick.jpeg";
-import darcyImage from "@/assets/darcy.jpeg";
-import ryanImage from "@/assets/ryan.jpeg";
-import anshulaImage from "@/assets/anshula.jpeg";
-import ashokImage from "@/assets/ashok.jpeg";
+import { Send } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import {
+  HoverCard,
+  HoverCardContent,
+  HoverCardTrigger,
+} from "@/components/ui/hover-card";
+
+interface Coach {
+  id: string;
+  name: string;
+  bio: string | null;
+  image_url: string | null;
+  linkedin_url: string | null;
+  display_order: number;
+}
 
 const CoachingSection = () => {
-  const coaches = [
-    {
-      name: "Patrick Farrar",
-      image: patrickImage,
-      linkedin: "https://linkedin.com/in/patrickfarrar"
-    },
-    {
-      name: "Darcy Norman", 
-      image: darcyImage,
-      linkedin: "https://linkedin.com/in/darcynorman"
-    },
-    {
-      name: "Anshula Chowdhury",
-      image: anshulaImage,
-      linkedin: "https://linkedin.com/in/anshulachowdhury"
-    },
-    {
-      name: "Ryan Oneil Knight",
-      image: ryanImage,
-      linkedin: "https://linkedin.com/in/ryanoneilknight"
-    },
-    {
-      name: "Ashok Ranade",
-      image: ashokImage,
-      linkedin: "https://linkedin.com/in/ashokranade"
+  const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    fetchCoaches();
+  }, []);
+
+  const fetchCoaches = async () => {
+    const { data, error } = await supabase
+      .from('coaches')
+      .select('*')
+      .eq('active', true)
+      .order('display_order', { ascending: true });
+
+    if (error) {
+      console.error('Error fetching coaches:', error);
+    } else {
+      setCoaches(data || []);
     }
-  ];
+    setLoading(false);
+  };
 
   return (
     <section id="coaching" className="py-20 px-4 bg-muted/30">
@@ -57,26 +62,61 @@ const CoachingSection = () => {
         {/* Coaches Grid */}
         <div className="mb-16">
           <h3 className="text-2xl font-bold text-navy text-center mb-8">Expert Navigators and Coaches</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
-            {coaches.map((coach, index) => (
-              <div key={index} className="text-center">
-                <Avatar className="w-20 h-20 mx-auto">
-                  <AvatarImage src={coach.image} alt={coach.name} />
-                  <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
-                    {coach.name.split(' ').map(n => n[0]).join('')}
-                  </AvatarFallback>
-                </Avatar>
+          
+          {loading ? (
+            <div className="text-center py-8">Loading coaches...</div>
+          ) : (
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6 max-w-4xl mx-auto">
+              {coaches.map((coach) => (
+                <HoverCard key={coach.id}>
+                  <HoverCardTrigger asChild>
+                    <div className="text-center cursor-pointer">
+                      <Avatar className="w-20 h-20 mx-auto mb-3">
+                        {coach.image_url && (
+                          <AvatarImage src={coach.image_url} alt={coach.name} />
+                        )}
+                        <AvatarFallback className="bg-primary text-primary-foreground text-lg font-bold">
+                          {coach.name.split(' ').map(n => n[0]).join('')}
+                        </AvatarFallback>
+                      </Avatar>
+                      <h4 className="text-sm font-semibold text-navy">
+                        {coach.name}
+                      </h4>
+                    </div>
+                  </HoverCardTrigger>
+                  <HoverCardContent className="w-80">
+                    <div className="space-y-2">
+                      <h4 className="text-sm font-semibold">{coach.name}</h4>
+                      {coach.bio && (
+                        <p className="text-sm text-muted-foreground">
+                          {coach.bio}
+                        </p>
+                      )}
+                      {coach.linkedin_url && (
+                        <a
+                          href={coach.linkedin_url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-sm text-primary hover:underline inline-flex items-center gap-1"
+                        >
+                          View LinkedIn Profile →
+                        </a>
+                      )}
+                    </div>
+                  </HoverCardContent>
+                </HoverCard>
+              ))}
+              
+              <div className="text-center">
+                <div className="w-20 h-20 mx-auto mb-3 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                  <span className="text-2xl text-muted-foreground/50">+</span>
+                </div>
+                <h4 className="text-sm font-semibold text-muted-foreground">
+                  More to come
+                </h4>
               </div>
-            ))}
-            <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-3 rounded-full border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
-                <span className="text-2xl text-muted-foreground/50">+</span>
-              </div>
-              <h4 className="text-sm font-semibold text-muted-foreground">
-                More to come
-              </h4>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Apply to be an expert button */}
