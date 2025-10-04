@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Mail, Send } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+import { contactSubmissionSchema } from '@/lib/validation';
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -31,17 +32,18 @@ const ContactSection = () => {
     setSuccess(false);
 
     try {
-      // Basic validation
-      if (!formData.firstName || !formData.lastName || !formData.email) {
-        setError('Please fill in all required fields');
-        setLoading(false);
-        return;
-      }
+      const validationResult = contactSubmissionSchema.safeParse({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        company: formData.company,
+        role: formData.role,
+        interestArea: formData.interestArea,
+        goals: formData.goals,
+      });
 
-      // Email validation
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-      if (!emailRegex.test(formData.email)) {
-        setError('Please enter a valid email address');
+      if (!validationResult.success) {
+        setError(validationResult.error.errors[0].message);
         setLoading(false);
         return;
       }

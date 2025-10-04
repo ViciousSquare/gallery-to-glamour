@@ -13,6 +13,7 @@ import AddResource from "./pages/admin/AddResource";
 import EditResource from "./pages/admin/EditResource";
 import AddCoach from "./pages/admin/AddCoach";
 import EditCoach from "./pages/admin/EditCoach";
+import SecurityTest from "./pages/SecurityTest";
 
 const queryClient = new QueryClient();
 
@@ -67,6 +68,14 @@ const App = () => (
               } 
             />
             <Route path="*" element={<NotFound />} />
+            <Route 
+              path="/security-test" 
+              element={
+                <ProtectedRoute>
+                  <SecurityTest />
+                </ProtectedRoute>
+              } 
+            />
           </Routes>
         </AuthProvider>
       </BrowserRouter>
