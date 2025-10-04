@@ -15,6 +15,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
+import { Mail } from "lucide-react";
 
 interface Resource {
   id: string;
@@ -40,17 +42,36 @@ interface Coach {
   created_at: string;
 }
 
+interface Submission {
+  id: string;
+  created_at: string;
+  first_name: string;
+  last_name: string;
+  email: string;
+  company: string | null;
+  role: string | null;
+  interest_area: string | null;
+  goals: string | null;
+  status: string;
+  notes: string | null;
+}
+
 export default function AdminDashboard() {
   const { user, signOut } = useAuth();
   const navigate = useNavigate();
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
+  const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loadingResources, setLoadingResources] = useState(true);
   const [loadingCoaches, setLoadingCoaches] = useState(true);
+  const [loadingSubmissions, setLoadingSubmissions] = useState(true);
+  const [draftDialogOpen, setDraftDialogOpen] = useState(false);
+  const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   useEffect(() => {
     fetchResources();
     fetchCoaches();
+    fetchSubmissions();
   }, []);
 
   const fetchResources = async () => {
@@ -81,6 +102,34 @@ export default function AdminDashboard() {
       setCoaches(data || []);
     }
     setLoadingCoaches(false);
+  };
+
+  const fetchSubmissions = async () => {
+    setLoadingSubmissions(true);
+    const { data, error } = await supabase
+      .from('contact_submissions')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (error) {
+      console.error('Error fetching submissions:', error);
+    } else {
+      setSubmissions(data || []);
+    }
+    setLoadingSubmissions(false);
+  };
+
+  const handleUpdateSubmissionStatus = async (id: string, newStatus: string) => {
+    const { error } = await supabase
+      .from('contact_submissions')
+      .update({ status: newStatus })
+      .eq('id', id);
+
+    if (error) {
+      alert(`Error updating status: ${error.message}`);
+    } else {
+      fetchSubmissions();
+    }
   };
 
   const handleDeleteResource = async (id: string, title: string) => {
@@ -145,6 +194,7 @@ export default function AdminDashboard() {
           <TabsList className="mb-8">
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="coaches">Coaches</TabsTrigger>
+            <TabsTrigger value="submissions">Submissions</TabsTrigger>
           </TabsList>
 
           {/* Resources Tab */}
@@ -309,8 +359,112 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Submissions Tab */}
+          <TabsContent value="submissions">
+            <Card>
+              <CardHeader>
+                <CardTitle>Contact Submissions</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {loadingSubmissions ? (
+                  <div className="text-center py-8">Loading submissions...</div>
+                ) : submissions.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No submissions found.
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <Table>
+                      <TableHeader>
+                        <TableRow>
+                          <TableHead>Date</TableHead>
+                          <TableHead>Name</TableHead>
+                          <TableHead>Email</TableHead>
+                          <TableHead>Company</TableHead>
+                          <TableHead>Role</TableHead>
+                          <TableHead>Interest</TableHead>
+                          <TableHead>Status</TableHead>
+                          <TableHead>Actions</TableHead>
+                          <TableHead>Draft Email</TableHead>
+                        </TableRow>
+                      </TableHeader>
+                      <TableBody>
+                        {submissions.map((submission) => (
+                          <TableRow key={submission.id}>
+                            <TableCell>
+                              {new Date(submission.created_at).toLocaleDateString()}
+                            </TableCell>
+                            <TableCell className="font-medium">
+                              {submission.first_name} {submission.last_name}
+                            </TableCell>
+                            <TableCell>{submission.email}</TableCell>
+                            <TableCell>{submission.company || '-'}</TableCell>
+                            <TableCell>{submission.role || '-'}</TableCell>
+                            <TableCell>{submission.interest_area || '-'}</TableCell>
+                            <TableCell>
+                              <Badge 
+                                variant={
+                                  submission.status === 'new' ? 'default' :
+                                  submission.status === 'contacted' ? 'secondary' :
+                                  submission.status === 'closed' ? 'outline' : 'default'
+                                }
+                              >
+                                {submission.status}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex gap-2">
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateSubmissionStatus(submission.id, 'contacted')}
+                                  disabled={submission.status === 'contacted'}
+                                >
+                                  Mark Contacted
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={() => handleUpdateSubmissionStatus(submission.id, 'closed')}
+                                  disabled={submission.status === 'closed'}
+                                >
+                                  Mark Completed
+                                </Button>
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => {
+                                  setSelectedSubmission(submission);
+                                  setDraftDialogOpen(true);
+                                }}
+                              >
+                                <Mail className="mr-2 h-4 w-4" />
+                                Draft Intro
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          </TabsContent>
         </Tabs>
       </main>
+      
+      {selectedSubmission && (
+        <DraftIntroductionDialog
+          open={draftDialogOpen}
+          onOpenChange={setDraftDialogOpen}
+          submission={selectedSubmission}
+        />
+      )}
     </div>
   );
 }

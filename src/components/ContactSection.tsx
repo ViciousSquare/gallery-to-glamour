@@ -1,12 +1,113 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Mail, Send, Linkedin } from "lucide-react";
+import { Mail, Send } from "lucide-react";
+import { supabase } from "@/lib/supabase";
+import { Alert, AlertDescription } from "@/components/ui/alert";
 
 const ContactSection = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    company: '',
+    role: '',
+    interestArea: '',
+    goals: '',
+  });
+  
+  const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+    setSuccess(false);
+
+    try {
+      // Basic validation
+      if (!formData.firstName || !formData.lastName || !formData.email) {
+        setError('Please fill in all required fields');
+        setLoading(false);
+        return;
+      }
+
+      // Email validation
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      if (!emailRegex.test(formData.email)) {
+        setError('Please enter a valid email address');
+        setLoading(false);
+        return;
+      }
+
+      // Check rate limiting - has this email submitted recently?
+      const { data: recentSubmission } = await supabase
+        .from('submission_rate_limits')
+        .select('*')
+        .eq('email', formData.email)
+        .gte('submitted_at', new Date(Date.now() - 60 * 60 * 1000).toISOString()) // Last hour
+        .single();
+
+      if (recentSubmission) {
+        setError('You\'ve already submitted recently. Please wait an hour before submitting again.');
+        setLoading(false);
+        return;
+      }
+
+      // Get user's IP and user agent (for spam tracking)
+      const userAgent = navigator.userAgent;
+      
+      // Insert the submission
+      const { error: insertError } = await supabase
+        .from('contact_submissions')
+        .insert([{
+          first_name: formData.firstName,
+          last_name: formData.lastName,
+          email: formData.email,
+          company: formData.company || null,
+          role: formData.role || null,
+          interest_area: formData.interestArea || null,
+          goals: formData.goals || null,
+          user_agent: userAgent,
+        }]);
+
+      if (insertError) throw insertError;
+
+      // Add to rate limit table
+      await supabase
+        .from('submission_rate_limits')
+        .insert([{
+          email: formData.email,
+          ip_address: 'browser', // We can't get real IP from browser, but tracks email
+        }]);
+
+      // Clean old rate limits
+      await supabase.rpc('clean_old_rate_limits');
+
+      setSuccess(true);
+      setFormData({
+        firstName: '',
+        lastName: '',
+        email: '',
+        company: '',
+        role: '',
+        interestArea: '',
+        goals: '',
+      });
+
+    } catch (err: any) {
+      setError(err.message || 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <section id="contact" className="py-20 px-4 bg-background">
       <div className="container mx-auto max-w-7xl">
@@ -20,133 +121,134 @@ const ContactSection = () => {
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-12">
-          {/* Contact Info */}
-          <div className="space-y-8">
-            <Card className="border-border">
-              <CardHeader>
-                <CardTitle className="text-navy">Get in Touch</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="flex items-center space-x-3">
-                  <Mail className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-medium text-navy">Email</p>
-                    <p className="text-muted-foreground">patrick@aiforcanadians.org</p>
-                  </div>
-                </div>
-                <div className="flex items-center space-x-3">
-                  <Linkedin className="w-5 h-5 text-primary" />
-                  <div>
-                    <p className="font-medium text-navy">LinkedIn</p>
-                    <a 
-                      href="https://linkedin.com/in/patrickfarrar" 
-                      target="_blank" 
-                      rel="noopener noreferrer"
-                      className="text-blue-600 hover:underline"
-                    >
-                      linkedin.com/in/patrickfarrar
-                    </a>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
+        <div className="max-w-2xl mx-auto">
           {/* Contact Form */}
           <Card className="border-border">
             <CardHeader>
               <CardTitle className="text-navy">Start Your AI Journey Today</CardTitle>
             </CardHeader>
             <CardContent className="space-y-6">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {success && (
+                <Alert className="bg-green-50 border-green-200">
+                  <AlertDescription className="text-green-800">
+                    Thank you! We've received your message and will get back to you soon.
+                  </AlertDescription>
+                </Alert>
+              )}
+
+              {error && (
+                <Alert variant="destructive">
+                  <AlertDescription>{error}</AlertDescription>
+                </Alert>
+              )}
+
+              <form onSubmit={handleSubmit} className="space-y-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="firstName">First Name *</Label>
+                    <Input 
+                      id="firstName" 
+                      value={formData.firstName}
+                      onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+                      placeholder="Enter your first name"
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="lastName">Last Name *</Label>
+                    <Input 
+                      id="lastName" 
+                      value={formData.lastName}
+                      onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+                      placeholder="Enter your last name"
+                      required
+                    />
+                  </div>
+                </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="firstName" className="text-navy">First Name *</Label>
+                  <Label htmlFor="email">Email Address *</Label>
                   <Input 
-                    id="firstName" 
-                    placeholder="Enter your first name"
-                    className="border-input"
+                    id="email" 
+                    type="email"
+                    value={formData.email}
+                    onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                    placeholder="Enter your email address"
+                    required
                   />
                 </div>
+
                 <div className="space-y-2">
-                  <Label htmlFor="lastName" className="text-navy">Last Name *</Label>
+                  <Label htmlFor="company">Company Name</Label>
                   <Input 
-                    id="lastName" 
-                    placeholder="Enter your last name"
-                    className="border-input"
+                    id="company" 
+                    value={formData.company}
+                    onChange={(e) => setFormData({ ...formData, company: e.target.value })}
+                    placeholder="Enter your company name"
                   />
                 </div>
-              </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="email" className="text-navy">Email Address *</Label>
-                <Input 
-                  id="email" 
-                  type="email"
-                  placeholder="Enter your email address"
-                  className="border-input"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="role">Your Role</Label>
+                  <Select 
+                    value={formData.role}
+                    onValueChange={(value) => setFormData({ ...formData, role: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="Select your role" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ceo">CEO/Founder</SelectItem>
+                      <SelectItem value="cto">CTO/Technical Lead</SelectItem>
+                      <SelectItem value="manager">Manager</SelectItem>
+                      <SelectItem value="consultant">Consultant</SelectItem>
+                      <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
+                      <SelectItem value="other">Other</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="company" className="text-navy">Company Name</Label>
-                <Input 
-                  id="company" 
-                  placeholder="Enter your company name"
-                  className="border-input"
-                />
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="interest">Area of Interest</Label>
+                  <Select 
+                    value={formData.interestArea}
+                    onValueChange={(value) => setFormData({ ...formData, interestArea: value })}
+                  >
+                    <SelectTrigger>
+                      <SelectValue placeholder="What interests you most?" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="strategy">AI Strategy</SelectItem>
+                      <SelectItem value="training">Team Training</SelectItem>
+                      <SelectItem value="implementation">AI Implementation</SelectItem>
+                      <SelectItem value="mentorship">Ongoing Mentorship</SelectItem>
+                      <SelectItem value="resources">Resource Access</SelectItem>
+                      <SelectItem value="coach">Being a Coach</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="role" className="text-navy">Your Role</Label>
-                <Select>
-                  <SelectTrigger className="border-input">
-                    <SelectValue placeholder="Select your role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="ceo">CEO/Founder</SelectItem>
-                    <SelectItem value="cto">CTO/Technical Lead</SelectItem>
-                    <SelectItem value="manager">Manager</SelectItem>
-                    <SelectItem value="consultant">Consultant</SelectItem>
-                    <SelectItem value="entrepreneur">Entrepreneur</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
+                <div className="space-y-2">
+                  <Label htmlFor="goals">Tell us about your AI goals</Label>
+                  <Textarea 
+                    id="goals"
+                    value={formData.goals}
+                    onChange={(e) => setFormData({ ...formData, goals: e.target.value })}
+                    placeholder="Describe your current challenges and what you hope to achieve with AI..."
+                    className="min-h-[100px]"
+                  />
+                </div>
 
-              <div className="space-y-2">
-                <Label htmlFor="interest" className="text-navy">Area of Interest</Label>
-                <Select>
-                  <SelectTrigger className="border-input">
-                    <SelectValue placeholder="What interests you most?" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="strategy">AI Strategy</SelectItem>
-                    <SelectItem value="training">Team Training</SelectItem>
-                    <SelectItem value="implementation">AI Implementation</SelectItem>
-                    <SelectItem value="mentorship">Ongoing Mentorship</SelectItem>
-                    <SelectItem value="resources">Resource Access</SelectItem>
-                    <SelectItem value="coach">Being a Coach</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div className="space-y-2">
-                <Label htmlFor="goals" className="text-navy">Tell us about your AI goals</Label>
-                <Textarea 
-                  id="goals"
-                  placeholder="Describe your current challenges and what you hope to achieve with AI..."
-                  className="border-input min-h-[100px]"
-                />
-              </div>
-
-              <Button 
-                className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3"
-                size="lg"
-              >
-                Send Message
-                <Send className="ml-2 h-4 w-4" />
-              </Button>
+                <Button 
+                  type="submit"
+                  className="w-full bg-primary hover:bg-primary/90 text-primary-foreground py-3"
+                  size="lg"
+                  disabled={loading}
+                >
+                  {loading ? 'Sending...' : 'Send Message'}
+                  {!loading && <Send className="ml-2 h-4 w-4" />}
+                </Button>
+              </form>
             </CardContent>
           </Card>
         </div>
