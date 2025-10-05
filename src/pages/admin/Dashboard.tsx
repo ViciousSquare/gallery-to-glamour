@@ -16,6 +16,7 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
+import UserManagement from './UserManagement';
 import { Mail } from "lucide-react";
 
 interface Resource {
@@ -56,9 +57,9 @@ interface Submission {
   notes: string | null;
 }
 
-export default function AdminDashboard() {
-  const { user, signOut } = useAuth();
+export default function Dashboard() {
   const navigate = useNavigate();
+  const { user, userProfile, loading, signOut } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -178,15 +179,23 @@ export default function AdminDashboard() {
         <div className="container mx-auto px-4 py-4 flex justify-between items-center">
           <h1 className="text-2xl font-bold">Admin Dashboard</h1>
           <div className="flex items-center gap-4">
-            <span className="text-sm text-muted-foreground">
-              {user?.email}
-            </span>
+            <div className="text-right">
+              <div className="text-sm font-medium">{user?.email}</div>
+            </div>
             <Button variant="outline" onClick={handleSignOut}>
               Sign Out
             </Button>
           </div>
         </div>
       </header>
+
+      {/* Debug Info */}
+      <div className="container mx-auto px-4 py-2 bg-gray-100 text-sm">
+        <p>User: {user?.email}</p>
+        <p>User ID: {user?.id}</p>
+        <p>Profile: {userProfile ? `${userProfile.email} (${userProfile.role})` : 'No profile loaded'}</p>
+        <p>Loading: {loading ? 'Yes' : 'No'}</p>
+      </div>
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
@@ -195,6 +204,9 @@ export default function AdminDashboard() {
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="coaches">Coaches</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
+            {userProfile?.role === 'admin' && (
+              <TabsTrigger value="users">Users</TabsTrigger>
+            )}
           </TabsList>
 
           {/* Resources Tab */}
@@ -455,6 +467,14 @@ export default function AdminDashboard() {
               </CardContent>
             </Card>
           </TabsContent>
+
+          {/* Users Tab - Admin Only */}
+          {userProfile?.role === 'admin' && (
+            <TabsContent value="users">
+              <UserManagement />
+            </TabsContent>
+          )}
+
         </Tabs>
       </main>
       
