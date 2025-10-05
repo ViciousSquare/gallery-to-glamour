@@ -3,6 +3,7 @@ import { supabase } from '@/lib/supabase';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useAuth } from '@/contexts/AuthContext';
+import CSRFProtection from '@/lib/csrf';
 
 interface UserProfile {
   id: string;
@@ -15,6 +16,7 @@ export default function UserManagement() {
   const { userProfile } = useAuth();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
   // Only show to admins
   if (userProfile?.role !== 'admin') {
@@ -27,6 +29,8 @@ export default function UserManagement() {
   }
 
   useEffect(() => {
+    // Initialize CSRF protection
+    CSRFProtection.generateToken();
     fetchUsers();
   }, []);
 
@@ -37,10 +41,16 @@ export default function UserManagement() {
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error fetching users:', error);
+        setError('Failed to load users. You may not have permission to view user profiles.');
+        setLoading(false);
+        return;
+      }
       setUsers(data || []);
     } catch (error) {
       console.error('Error fetching users:', error);
+      setError('Failed to load users. Please try again.');
     } finally {
       setLoading(false);
     }
@@ -48,19 +58,47 @@ export default function UserManagement() {
 
   const updateUserRole = async (userId: string, newRole: 'user' | 'admin') => {
     try {
+      // CSRF Protection - validate token before making changes
+      const csrfToken = CSRFProtection.getToken();
+      if (!CSRFProtection.validateToken(csrfToken)) {
+        setError('Security validation failed. Please refresh the page.');
+        return;
+      }
+
+      // Prevent users from changing their own role to avoid lockout
+      if (userId === userProfile?.id) {
+        setError('You cannot change your own role for security reasons.');
+        return;
+      }
+
       const { error } = await supabase
         .from('user_profiles')
-        .update({ role: newRole })
+        .update({ 
+          role: newRole,
+          // Add metadata for audit trail
+          updated_by: userProfile?.id,
+          updated_at: new Date().toISOString()
+        })
         .eq('id', userId);
 
-      if (error) throw error;
+      if (error) {
+        console.error('Error updating user role:', error);
+        setError('Failed to update user role. You may not have permission.');
+        return;
+      }
       
       // Update local state
       setUsers(users.map(user => 
         user.id === userId ? { ...user, role: newRole } : user
       ));
+      setError(''); // Clear any previous errors
+      
+      // Generate new CSRF token after successful operation
+      CSRFProtection.generateToken();
+      
     } catch (error) {
       console.error('Error updating user role:', error);
+      setError('Failed to update user role. Please try again.');
     }
   };
 
@@ -68,6 +106,11 @@ export default function UserManagement() {
 
   return (
     <div className="space-y-6">
+      {error && (
+        <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded">
+          {error}
+        </div>
+      )}
       <Card>
         <CardHeader>
           <CardTitle>User Management</CardTitle>

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
+import CSRFProtection from '@/lib/csrf';
 
 interface UserProfile {
   id: string;
@@ -27,7 +28,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
 
   const fetchUserProfile = async (userId: string) => {
-    console.log('Fetching profile for user ID:', userId);
     try {
       const { data, error } = await supabase
         .from('user_profiles')
@@ -35,14 +35,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         .eq('id', userId)
         .single();
       
-      console.log('Profile fetch result:', { data, error });
-      
       if (!error && data) {
         setUserProfile(data);
-        console.log('Profile set successfully:', data);
-      } else {
-        console.log('No profile data or error occurred:', error);
-        setUserProfile(null);
       }
     } catch (error) {
       console.error('Error fetching user profile:', error);
@@ -69,8 +63,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setUser(session?.user ?? null);
       if (session?.user) {
         fetchUserProfile(session.user.id);
+        // Generate CSRF token on login
+        CSRFProtection.generateToken();
       } else {
         setUserProfile(null);
+        // Clear CSRF token on logout
+        CSRFProtection.clearToken();
       }
       setLoading(false);
     });
@@ -88,6 +86,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
+    // Clear CSRF token on logout
+    CSRFProtection.clearToken();
   };
 
   return (

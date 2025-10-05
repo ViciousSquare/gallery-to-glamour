@@ -189,14 +189,6 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Debug Info */}
-      <div className="container mx-auto px-4 py-2 bg-gray-100 text-sm">
-        <p>User: {user?.email}</p>
-        <p>User ID: {user?.id}</p>
-        <p>Profile: {userProfile ? `${userProfile.email} (${userProfile.role})` : 'No profile loaded'}</p>
-        <p>Loading: {loading ? 'Yes' : 'No'}</p>
-      </div>
-
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
         <Tabs defaultValue="resources" className="w-full">
