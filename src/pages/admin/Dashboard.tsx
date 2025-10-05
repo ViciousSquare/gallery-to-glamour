@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
 import { SubmissionDetailsDialog } from '@/components/SubmissionDetailsDialog';
 import { NotesDialog } from '@/components/NotesDialog';
+import { NextStepsDialog } from '@/components/NextStepsDialog';
 
 import { Mail, MessageSquare, Lightbulb } from "lucide-react";
 import { getTagColor } from '@/lib/constants';
@@ -61,7 +62,18 @@ interface Submission {
   status: string;
   notes: string | null;
   tags: string[];
+  resurface_date: string | null;
 }
+
+const getLlmActionLabel = (status: string) => {
+  switch (status) {
+    case 'new': return 'Draft Intro Email';
+    case 'lead': return 'Plan Follow-Up';
+    case 'client': return 'Draft Next Steps';
+    case 'closed': return 'Send Thank-You';
+    default: return 'Suggest Action';
+  }
+};
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -75,6 +87,7 @@ export default function Dashboard() {
   const [draftDialogOpen, setDraftDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
+  const [nextStepsDialogOpen, setNextStepsDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>('all');
@@ -100,6 +113,9 @@ export default function Dashboard() {
 
     if (error) {
       console.error('Error fetching resources:', error);
+      toast.error("Error fetching resources", {
+        description: error.message
+      });
     } else {
       setResources(data || []);
     }
@@ -115,6 +131,9 @@ export default function Dashboard() {
 
     if (error) {
       console.error('Error fetching coaches:', error);
+      toast.error("Error fetching coaches", {
+        description: error.message
+      });
     } else {
       setCoaches(data || []);
     }
@@ -130,85 +149,15 @@ export default function Dashboard() {
 
     if (error) {
       console.error('Error fetching submissions:', error);
+      toast.error("Error fetching submissions", {
+        description: error.message
+      });
     } else {
       setSubmissions(data || []);
     }
     setLoadingSubmissions(false);
   };
 
-  const handleUpdateSubmissionStatus = async (id: string, newStatus: string) => {
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ status: newStatus })
-      .eq('id', id);
-
-    if (error) {
-      alert(`Error updating status: ${error.message}`);
-    } else {
-      // Update only the affected submission in local state instead of refetching all
-      setSubmissions((prev) =>
-        prev.map((s) =>
-          s.id === id ? { ...s, status: newStatus } : s
-        )
-      );
-    }
-  };
-
-  const handleSuggestAction = async (submission: Submission) => {
-    // Add to loading set
-    setLoadingSuggestions(prev => new Set(prev).add(submission.id));
-
-    try {
-      // Fetch notes for this submission
-      const { data: notes, error: notesError } = await supabase
-        .from('submission_notes')
-        .select('*')
-        .eq('submission_id', submission.id)
-        .order('created_at', { ascending: true });
-
-      if (notesError) {
-        throw new Error(`Error fetching notes: ${notesError.message}`);
-      }
-
-      // Call the edge function
-      const { data, error } = await supabase.functions.invoke('suggest-next-action', {
-        body: {
-          submission,
-          notes: notes || []
-        }
-      });
-
-      if (error) {
-        throw new Error(`Error getting suggestion: ${error.message}`);
-      }
-
-      // Show suggestion in toast with copy functionality
-      toast.success("Action Suggestion", {
-        description: data.suggestion,
-        duration: 10000,
-        action: {
-          label: "Copy",
-          onClick: () => {
-            navigator.clipboard.writeText(data.suggestion);
-            toast.success("Copied to clipboard!");
-          }
-        }
-      });
-
-    } catch (error) {
-      console.error('Error getting action suggestion:', error);
-      toast.error("Failed to get suggestion", {
-        description: error instanceof Error ? error.message : "Unknown error occurred"
-      });
-    } finally {
-      // Remove from loading set
-      setLoadingSuggestions(prev => {
-        const newSet = new Set(prev);
-        newSet.delete(submission.id);
-        return newSet;
-      });
-    }
-  };
 
   const handleDeleteResource = async (id: string, title: string) => {
     if (!confirm(`Are you sure you want to delete "${title}"?`)) {
@@ -221,7 +170,9 @@ export default function Dashboard() {
       .eq('id', id);
 
     if (error) {
-      alert(`Error deleting resource: ${error.message}`);
+      toast.error("Error deleting resource", {
+        description: error.message
+      });
     } else {
       fetchResources();
     }
@@ -238,7 +189,9 @@ export default function Dashboard() {
       .eq('id', id);
 
     if (error) {
-      alert(`Error deleting coach: ${error.message}`);
+      toast.error("Error deleting coach", {
+        description: error.message
+      });
     } else {
       fetchCoaches();
     }
@@ -247,6 +200,122 @@ export default function Dashboard() {
   const handleSignOut = async () => {
     await signOut();
     navigate('/admin/login');
+  };
+
+  const SubmissionRow = ({ submission }: { submission: Submission }) => {
+    const [status, setStatus] = useState<string>(submission.status);
+
+    const onChangeStatus = async (next: string) => {
+      setStatus(next);
+
+      // Calculate resurface date if status is changing to 'closed'
+      const updateData: any = { status: next };
+      if (next === 'closed') {
+        const resurfaceDate = new Date();
+        resurfaceDate.setMonth(resurfaceDate.getMonth() + 6);
+        updateData.resurface_date = resurfaceDate.toISOString();
+      }
+
+      const { error } = await supabase
+        .from('contact_submissions')
+        .update(updateData)
+        .eq('id', submission.id);
+      if (error) {
+        toast.error("Error updating status", {
+          description: error.message
+        });
+        setStatus(submission.status);
+      } else {
+        // Update local state
+        setSubmissions((prev) =>
+          prev.map((s) =>
+            s.id === submission.id ? { ...s, status: next, resurface_date: updateData.resurface_date || s.resurface_date } : s
+          )
+        );
+      }
+    };
+
+    const onLlmAction = async () => {
+      if (status === 'new') {
+        setSelectedSubmission(submission);
+        setDraftDialogOpen(true);
+      } else {
+        // For other statuses, open NextStepsDialog
+        setSelectedSubmission(submission);
+        setNextStepsDialogOpen(true);
+      }
+    };
+
+    const isResurfaced = submission.resurface_date && new Date(submission.resurface_date) <= new Date();
+
+    return (
+      <div className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
+        <div className="max-w-[260px] space-y-0.5">
+          <div className="font-semibold flex items-center gap-2">
+            {submission.first_name} {submission.last_name}
+            {isResurfaced && <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Resurface</Badge>}
+          </div>
+          <div className="text-muted-foreground truncate">
+            <a href={`mailto:${submission.email}`} className="hover:underline">
+              {submission.email}
+            </a>
+          </div>
+          <div className="text-muted-foreground truncate">{submission.company || '—'}</div>
+          <div className="text-muted-foreground">{submission.role || '—'}</div>
+          <div className="text-muted-foreground">{submission.interest_area || '—'}</div>
+        </div>
+
+        <div className="text-xs text-muted-foreground">
+          {new Date(submission.created_at).toLocaleDateString()}
+        </div>
+
+        <div className="text-sm leading-snug line-clamp-2">
+          {submission.goals || submission.notes || '—'}
+        </div>
+
+        <div className="flex flex-wrap gap-1">
+          {(submission.tags || []).slice(0, 3).map((tag, index) => (
+            <Badge
+              key={index}
+              variant="outline"
+              className={`${getTagColor(tag)} text-xs px-1.5 py-0.5`}
+            >
+              {tag}
+            </Badge>
+          ))}
+          {(submission.tags || []).length > 3 && (
+            <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600">
+              +{(submission.tags || []).length - 3}
+            </Badge>
+          )}
+        </div>
+
+        <Select
+          value={status}
+          onValueChange={onChangeStatus}
+          aria-label="Change status"
+        >
+          <SelectTrigger className="w-[160px]">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="new">new</SelectItem>
+            <SelectItem value="lead">lead</SelectItem>
+            <SelectItem value="client">client</SelectItem>
+            <SelectItem value="closed">closed</SelectItem>
+          </SelectContent>
+        </Select>
+
+        <Button
+          className="w-[200px] justify-self-end"
+          onClick={onLlmAction}
+          disabled={loadingSuggestions.has(submission.id)}
+          aria-label={`${getLlmActionLabel(status)} for ${submission.first_name} ${submission.last_name}`}
+        >
+          {loadingSuggestions.has(submission.id) ? 'Loading...' : getLlmActionLabel(status)}
+        </Button>
+      </div>
+    );
   };
 
   return (
@@ -273,7 +342,6 @@ export default function Dashboard() {
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="coaches">Coaches</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
-
           </TabsList>
 
           {/* Resources Tab */}
@@ -490,143 +558,21 @@ export default function Dashboard() {
                     {statusFilter === 'all' ? 'No submissions found.' : `No ${statusFilter} submissions found.`}
                   </div>
                 ) : (
-                  <div className="overflow-x-auto">
-                    <Table>
-                      <TableHeader>
-                        <TableRow>
-                          <TableHead>Date</TableHead>
-                          <TableHead>Name</TableHead>
-                          <TableHead>Email</TableHead>
-                          <TableHead>Company</TableHead>
-                          <TableHead>Role</TableHead>
-                          <TableHead>Interest</TableHead>
-                          <TableHead>Tags</TableHead>
-                          <TableHead>Status</TableHead>
-                          <TableHead>Actions</TableHead>
-                        </TableRow>
-                      </TableHeader>
-                      <TableBody>
-                        {filteredSubmissions.map((submission) => (
-                          <TableRow 
-                            key={submission.id}
-                            className="cursor-pointer hover:bg-gray-50"
-                            onClick={() => {
-                              setSelectedSubmission(submission);
-                              setDetailsDialogOpen(true);
-                            }}
-                          >
-                            <TableCell>
-                              {new Date(submission.created_at).toLocaleDateString()}
-                            </TableCell>
-                            <TableCell className="font-medium">
-                              {submission.first_name} {submission.last_name}
-                            </TableCell>
-                            <TableCell>{submission.email}</TableCell>
-                            <TableCell>{submission.company || '-'}</TableCell>
-                            <TableCell>{submission.role || '-'}</TableCell>
-                            <TableCell>{submission.interest_area || '-'}</TableCell>
-                            <TableCell>
-                              {submission.tags && submission.tags.length > 0 ? (
-                                <div className="flex flex-wrap gap-1 max-w-[200px]">
-                                  {submission.tags.slice(0, 3).map((tag, index) => (
-                                    <Badge 
-                                      key={index}
-                                      variant="outline"
-                                      className={`${getTagColor(tag)} text-xs px-1.5 py-0.5`}
-                                    >
-                                      {tag}
-                                    </Badge>
-                                  ))}
-                                  {submission.tags.length > 3 && (
-                                    <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600">
-                                      +{submission.tags.length - 3}
-                                    </Badge>
-                                  )}
-                                </div>
-                              ) : (
-                                <span className="text-muted-foreground">-</span>
-                              )}
-                            </TableCell>
-                            <TableCell>
-                              <Badge 
-                                variant={
-                                  submission.status === 'new' ? 'default' :
-                                  submission.status === 'lead' ? 'secondary' :
-                                  submission.status === 'client' ? 'default' :
-                                  submission.status === 'closed' ? 'outline' : 'default'
-                                }
-                                className={
-                                  submission.status === 'new' ? 'bg-blue-100 text-blue-800' :
-                                  submission.status === 'lead' ? 'bg-yellow-100 text-yellow-800' :
-                                  submission.status === 'client' ? 'bg-green-100 text-green-800' :
-                                  submission.status === 'closed' ? 'bg-gray-100 text-gray-800' : ''
-                                }
-                              >
-                                {submission.status}
-                              </Badge>
-                            </TableCell>
-                            <TableCell>
-                              <div className="flex gap-1 flex-wrap">
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    setSelectedSubmission(submission);
-                                    setNotesDialogOpen(true);
-                                  }}
-                                >
-                                  <MessageSquare className="mr-1 h-3 w-3" />
-                                  Notes
-                                </Button>
-                                <Select
-                                  value={submission.status}
-                                  onValueChange={(newStatus) => {
-                                    handleUpdateSubmissionStatus(submission.id, newStatus);
-                                  }}
-                                >
-                                  <SelectTrigger className="w-24 h-8" onClick={(e) => e.stopPropagation()}>
-                                    <SelectValue />
-                                  </SelectTrigger>
-                                  <SelectContent>
-                                    <SelectItem value="new">New</SelectItem>
-                                    <SelectItem value="lead">Lead</SelectItem>
-                                    <SelectItem value="client">Client</SelectItem>
-                                    <SelectItem value="closed">Closed</SelectItem>
-                                  </SelectContent>
-                                </Select>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    if (submission.status === 'new') {
-                                      setSelectedSubmission(submission);
-                                      setDraftDialogOpen(true);
-                                    } else {
-                                      handleSuggestAction(submission);
-                                    }
-                                  }}
-                                  disabled={loadingSuggestions.has(submission.id)}
-                                >
-                                  {submission.status === 'new' ? (
-                                    <>
-                                      <Mail className="mr-1 h-3 w-3" />
-                                      {loadingSuggestions.has(submission.id) ? 'Loading...' : 'Draft Email'}
-                                    </>
-                                  ) : (
-                                    <>
-                                      <Lightbulb className="mr-1 h-3 w-3" />
-                                      {loadingSuggestions.has(submission.id) ? 'Loading...' : 'Suggest Action'}
-                                    </>
-                                  )}
-                                </Button>
-                              </div>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
+                  <div className="space-y-4">
+                    {/* Header Row */}
+                    <div className="grid grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] gap-4 px-4 py-2 bg-muted/50 rounded-lg text-sm font-medium text-muted-foreground">
+                      <div>Contact</div>
+                      <div>Date</div>
+                      <div>Interest</div>
+                      <div>Tags</div>
+                      <div>Status</div>
+                      <div className="justify-self-end">LLM Action</div>
+                    </div>
+
+                    {/* Submission Rows */}
+                    {filteredSubmissions.map((submission) => (
+                      <SubmissionRow key={submission.id} submission={submission} />
+                    ))}
                   </div>
                 )}
               </CardContent>
@@ -658,6 +604,15 @@ export default function Dashboard() {
         onOpenChange={setNotesDialogOpen}
         submission={selectedSubmission}
       />
+
+      {selectedSubmission && (
+        <NextStepsDialog
+          open={nextStepsDialogOpen}
+          onOpenChange={setNextStepsDialogOpen}
+          submission={selectedSubmission}
+          actionType={selectedSubmission?.status || 'new'}
+        />
+      )}
     </div>
   );
 }

@@ -1,12 +1,12 @@
 import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
-import { 
-  ALL_SUBMISSION_TAGS, 
-  ACTIVITY_TAGS, 
-  SERVICE_TAGS, 
-  STATUS_TAGS, 
-  getTagColor 
+import {
+  ALL_SUBMISSION_TAGS,
+  ACTIVITY_TAGS,
+  SERVICE_TAGS,
+  STATUS_TAGS,
+  getTagColor
 } from '@/lib/constants';
 import {
   Dialog,
@@ -17,6 +17,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 
 interface Submission {
@@ -32,6 +34,7 @@ interface Submission {
   status: string;
   notes: string | null;
   tags: string[];
+  resurface_date: string | null;
 }
 
 
@@ -136,10 +139,38 @@ export function SubmissionDetailsDialog({
     } else {
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, tags: [] });
-      
+
       toast({
         title: "Tags Cleared",
         description: `Removed all tags from ${currentSubmission.first_name} ${currentSubmission.last_name}`,
+      });
+      onUpdate();
+    }
+    setIsUpdating(false);
+  };
+
+  const handleUpdateResurfaceDate = async (dateValue: string) => {
+    setIsUpdating(true);
+    const resurfaceDate = dateValue ? new Date(dateValue).toISOString() : null;
+
+    const { error } = await supabase
+      .from('contact_submissions')
+      .update({ resurface_date: resurfaceDate })
+      .eq('id', currentSubmission.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: `Failed to update resurface date: ${error.message}`,
+        variant: "destructive",
+      });
+    } else {
+      // Update local state immediately for live updates
+      setCurrentSubmission({ ...currentSubmission, resurface_date: resurfaceDate });
+
+      toast({
+        title: "Resurface Date Updated",
+        description: `Updated resurface date for ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
     }
@@ -201,6 +232,17 @@ export function SubmissionDetailsDialog({
               <div className="col-span-2">
                 <span className="font-medium text-gray-600">Interest Area:</span>
                 <div>{currentSubmission.interest_area || 'Not specified'}</div>
+              </div>
+              <div>
+                <Label htmlFor="resurface-date" className="font-medium text-gray-600">Resurface Date:</Label>
+                <Input
+                  id="resurface-date"
+                  type="date"
+                  value={currentSubmission.resurface_date ? new Date(currentSubmission.resurface_date).toISOString().split('T')[0] : ''}
+                  onChange={(e) => handleUpdateResurfaceDate(e.target.value)}
+                  disabled={isUpdating}
+                  className="mt-1"
+                />
               </div>
               {currentSubmission.goals && (
                 <div className="col-span-2">
