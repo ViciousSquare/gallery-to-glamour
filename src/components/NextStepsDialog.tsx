@@ -110,7 +110,7 @@ export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: 
     switch (status) {
       case 'new': return 'Plan Follow-Up';
       case 'lead': return 'Draft Next Steps';
-      case 'client': return 'Draft Next Steps';
+      case 'client': return 'Suggest Next Steps';
       case 'closed': return 'Send Thank-You';
       default: return 'Suggest Action';
     }

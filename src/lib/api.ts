@@ -78,7 +78,7 @@ export const submissionsApi = {
     if (error) throw error
   },
 
-  async updateResurfaceDate(id: string, resurfaceDate: string | null) {
+  async updateRevisitDate(id: string, resurfaceDate: string | null) {
     const { error } = await supabase
       .from('contact_submissions')
       .update({ resurface_date: resurfaceDate })

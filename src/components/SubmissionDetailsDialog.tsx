@@ -126,24 +126,24 @@ export function SubmissionDetailsDialog({
     setIsUpdating(false);
   };
 
-  const handleUpdateResurfaceDate = async (dateValue: string) => {
+  const handleUpdateRevisitDate = async (dateValue: string) => {
     setIsUpdating(true);
     const resurfaceDate = dateValue ? new Date(dateValue).toISOString() : null;
 
     try {
-      await submissionsApi.updateResurfaceDate(currentSubmission.id, resurfaceDate);
+      await submissionsApi.updateRevisitDate(currentSubmission.id, resurfaceDate);
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, resurface_date: resurfaceDate });
 
       toast({
-        title: "Resurface Date Updated",
-        description: `Updated resurface date for ${currentSubmission.first_name} ${currentSubmission.last_name}`,
+        title: "Revisit Date Updated",
+        description: `Updated revisit date for ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
     } catch (error: any) {
       toast({
         title: "Error",
-        description: `Failed to update resurface date: ${error.message}`,
+        description: `Failed to update revisit date: ${error.message}`,
         variant: "destructive",
       });
     }
@@ -175,16 +175,32 @@ export function SubmissionDetailsDialog({
     const now = new Date();
     const diffTime = Math.abs(now.getTime() - date.getTime());
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
-    
+
     if (diffDays === 1) return 'Today';
     if (diffDays === 2) return 'Yesterday';
     if (diffDays <= 7) return `${diffDays - 1} days ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
+
+    return date.toLocaleDateString('en-US', {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric'
     });
+  };
+
+  const getPresetDate = (preset: 'tomorrow' | 'nextWeek' | 'nextMonth') => {
+    const now = new Date();
+    switch (preset) {
+      case 'tomorrow':
+        now.setDate(now.getDate() + 1);
+        break;
+      case 'nextWeek':
+        now.setDate(now.getDate() + 7);
+        break;
+      case 'nextMonth':
+        now.setMonth(now.getMonth() + 1);
+        break;
+    }
+    return now.toISOString().split('T')[0];
   };
 
 
@@ -227,15 +243,59 @@ export function SubmissionDetailsDialog({
                 <div>{currentSubmission.interest_area || 'Not specified'}</div>
               </div>
               <div>
-                <Label htmlFor="resurface-date" className="font-medium text-gray-600">Resurface Date:</Label>
+                <Label htmlFor="resurface-date" className="font-medium text-gray-600">Revisit Date:</Label>
                 <Input
                   id="resurface-date"
                   type="date"
                   value={currentSubmission.resurface_date ? new Date(currentSubmission.resurface_date).toISOString().split('T')[0] : ''}
-                  onChange={(e) => handleUpdateResurfaceDate(e.target.value)}
+                  onChange={(e) => handleUpdateRevisitDate(e.target.value)}
                   disabled={isUpdating}
                   className="mt-1"
                 />
+                <div className="flex gap-2 mt-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateRevisitDate(getPresetDate('tomorrow'))}
+                    disabled={isUpdating}
+                    className="text-xs"
+                  >
+                    Tomorrow
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateRevisitDate(getPresetDate('nextWeek'))}
+                    disabled={isUpdating}
+                    className="text-xs"
+                  >
+                    Next Week
+                  </Button>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleUpdateRevisitDate(getPresetDate('nextMonth'))}
+                    disabled={isUpdating}
+                    className="text-xs"
+                  >
+                    Next Month
+                  </Button>
+                  {currentSubmission.resurface_date && (
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => handleUpdateRevisitDate(null)}
+                      disabled={isUpdating}
+                      className="text-xs text-red-600 hover:text-red-700 hover:bg-red-50"
+                    >
+                      Clear
+                    </Button>
+                  )}
+                </div>
               </div>
               {currentSubmission.goals && (
                 <div className="col-span-2">

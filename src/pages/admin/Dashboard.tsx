@@ -37,7 +37,7 @@ const getLlmActionLabel = (status: string) => {
   switch (status) {
     case 'new': return 'Draft Intro Email';
     case 'lead': return 'Plan Follow-Up';
-    case 'client': return 'Draft Next Steps';
+    case 'client': return 'Suggest Next Steps';
     case 'closed': return 'Send Thank-You';
     default: return 'Suggest Action';
   }
@@ -49,6 +49,7 @@ export default function Dashboard() {
   const { user, loading, signOut } = useAuth();
   const hasTrackedView = useRef(false);
   const hasShownNewAlert = useRef(false);
+  const hasShownRevisitAlert = useRef(false);
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -71,8 +72,14 @@ export default function Dashboard() {
 
   // Filter submissions based on status
   const filteredSubmissions = submissions.filter(submission => {
-    if (statusFilter === 'all') return true;
-    return submission.status === statusFilter;
+    if (statusFilter === 'all') {
+      return !submission.resurface_date; // "All" excludes submissions with revisit dates
+    }
+    if (statusFilter === 'revisit') {
+      return submission.resurface_date; // Show ALL submissions with revisit dates (past and future)
+    }
+    // For status filters, exclude submissions that have revisit dates
+    return submission.status === statusFilter && !submission.resurface_date;
   });
 
   useEffect(() => {
@@ -102,6 +109,26 @@ export default function Dashboard() {
           }
         });
         hasShownNewAlert.current = true;
+      }
+    }
+  }, [submissions, navigate]);
+
+  useEffect(() => {
+    if (submissions.length > 0 && !hasShownRevisitAlert.current) {
+      const revisitCount = submissions.filter(s =>
+        s.resurface_date && new Date(s.resurface_date) <= new Date()
+      ).length;
+      if (revisitCount > 0) {
+        toast(`You have ${revisitCount} submission${revisitCount > 1 ? 's' : ''} to revisit`, {
+          action: {
+            label: "View",
+            onClick: () => {
+              setStatusFilter('revisit');
+              navigate('/admin?tab=submissions', { replace: true });
+            }
+          }
+        });
+        hasShownRevisitAlert.current = true;
       }
     }
   }, [submissions, navigate]);
@@ -686,35 +713,42 @@ export default function Dashboard() {
                     size="sm"
                     onClick={() => setStatusFilter('all')}
                   >
-                    All ({submissions.length})
+                    All ({submissions.filter(s => !s.resurface_date).length})
                   </Button>
                   <Button
                     variant={statusFilter === 'new' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setStatusFilter('new')}
                   >
-                    New ({submissions.filter(s => s.status === 'new').length})
+                    New ({submissions.filter(s => s.status === 'new' && !s.resurface_date).length})
                   </Button>
                   <Button
                     variant={statusFilter === 'lead' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setStatusFilter('lead')}
                   >
-                    Lead ({submissions.filter(s => s.status === 'lead').length})
+                    Lead ({submissions.filter(s => s.status === 'lead' && !s.resurface_date).length})
                   </Button>
                   <Button
                     variant={statusFilter === 'client' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setStatusFilter('client')}
                   >
-                    Client ({submissions.filter(s => s.status === 'client').length})
+                    Client ({submissions.filter(s => s.status === 'client' && !s.resurface_date).length})
                   </Button>
                   <Button
                     variant={statusFilter === 'closed' ? 'default' : 'outline'}
                     size="sm"
                     onClick={() => setStatusFilter('closed')}
                   >
-                    Closed ({submissions.filter(s => s.status === 'closed').length})
+                    Closed ({submissions.filter(s => s.status === 'closed' && !s.resurface_date).length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'revisit' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('revisit')}
+                  >
+                    To Revisit ({submissions.filter(s => s.resurface_date).length})
                   </Button>
                 </div>
               </CardHeader>
@@ -753,7 +787,7 @@ export default function Dashboard() {
                     </div>
                   ) : filteredSubmissions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    {statusFilter === 'all' ? 'No submissions found.' : `No ${statusFilter} submissions found.`}
+                    {statusFilter === 'all' ? 'No submissions found.' : statusFilter === 'revisit' ? 'No submissions to revisit.' : `No ${statusFilter} submissions found.`}
                   </div>
                 ) : (
                   <div className="space-y-4">

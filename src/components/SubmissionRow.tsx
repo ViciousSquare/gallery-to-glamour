@@ -21,7 +21,7 @@ const getLlmActionLabel = (status: string) => {
   switch (status) {
     case 'new': return 'Draft Intro Email';
     case 'lead': return 'Plan Follow-Up';
-    case 'client': return 'Draft Next Steps';
+    case 'client': return 'Suggest Next Steps';
     case 'closed': return 'Send Thank-You';
     default: return 'Suggest Action';
   }
@@ -44,17 +44,17 @@ export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, 
     }
   };
 
-  const isResurfaced = submission.resurface_date && new Date(submission.resurface_date) <= new Date();
+  const needsRevisit = submission.resurface_date && new Date(submission.resurface_date) <= new Date();
 
   return (
     <div
-      className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
+      className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${needsRevisit ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
       onClick={onClick}
     >
       <div className="max-w-[260px] space-y-0.5">
         <div className="font-semibold flex items-center gap-2">
           {submission.first_name} {submission.last_name}
-          {isResurfaced && <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Resurface</Badge>}
+          {needsRevisit && <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Revisit</Badge>}
         </div>
         <div className="text-muted-foreground truncate">
           <a href={`mailto:${submission.email}`} className="hover:underline">
@@ -66,8 +66,13 @@ export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, 
         <div className="text-muted-foreground">{submission.interest_area || '—'}</div>
       </div>
 
-      <div className="text-xs text-muted-foreground">
-        {new Date(submission.created_at).toLocaleDateString()}
+      <div className="text-xs text-muted-foreground space-y-0.5">
+        <div>{new Date(submission.created_at).toLocaleDateString()}</div>
+        {submission.resurface_date && (
+          <div className={`font-medium ${needsRevisit ? 'text-orange-600' : 'text-blue-600'}`}>
+            Revisit: {new Date(submission.resurface_date).toLocaleDateString()}
+          </div>
+        )}
       </div>
 
       <div className="text-sm leading-snug line-clamp-2">
