@@ -48,7 +48,7 @@ export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, 
 
   return (
     <div
-      className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
+      className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors border-b border-border ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
       onClick={onClick}
     >
       <div className="max-w-[260px] space-y-0.5">
@@ -75,7 +75,7 @@ export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, 
       </div>
 
       <div className="flex flex-wrap gap-1">
-        {(submission.tags || []).slice(0, 3).map((tag, index) => (
+        {(submission.tags || []).map((tag, index) => (
           <Badge
             key={index}
             variant="outline"
@@ -84,11 +84,6 @@ export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, 
             {tag}
           </Badge>
         ))}
-        {(submission.tags || []).length > 3 && (
-          <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600">
-            +{(submission.tags || []).length - 3}
-          </Badge>
-        )}
       </div>
 
       <Select

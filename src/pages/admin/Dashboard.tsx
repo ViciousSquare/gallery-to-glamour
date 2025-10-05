@@ -23,6 +23,9 @@ import { SubmissionDetailsDialog } from '@/components/SubmissionDetailsDialog';
 import { NotesDialog } from '@/components/NotesDialog';
 import { NextStepsDialog } from '@/components/NextStepsDialog';
 import { SubmissionRow } from '@/components/SubmissionRow';
+import DataErrorBoundary from '@/components/DataErrorBoundary';
+import { TableSkeleton } from '@/components/TableSkeleton';
+import { Skeleton } from '@/components/ui/skeleton';
 
 import { Mail, MessageSquare, Lightbulb } from "lucide-react";
 import { getTagColor } from '@/lib/constants';
@@ -45,6 +48,7 @@ export default function Dashboard() {
   const [searchParams] = useSearchParams();
   const { user, loading, signOut } = useAuth();
   const hasTrackedView = useRef(false);
+  const hasShownNewAlert = useRef(false);
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -83,6 +87,24 @@ export default function Dashboard() {
     fetchSubmissions();
     fetchAnalytics();
   }, []);
+
+  useEffect(() => {
+    if (submissions.length > 0 && !hasShownNewAlert.current) {
+      const newCount = submissions.filter(s => s.status === 'new').length;
+      if (newCount > 0) {
+        toast(`You have ${newCount} new submission${newCount > 1 ? 's' : ''}`, {
+          action: {
+            label: "View",
+            onClick: () => {
+              setStatusFilter('new');
+              navigate('/admin?tab=submissions', { replace: true });
+            }
+          }
+        });
+        hasShownNewAlert.current = true;
+      }
+    }
+  }, [submissions, navigate]);
 
   const fetchResources = async () => {
     setLoadingResources(true);
@@ -456,9 +478,10 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                {loadingResources ? (
-                  <div className="text-center py-8">Loading resources...</div>
-                ) : resources.length === 0 ? (
+                <DataErrorBoundary onRetry={fetchResources}>
+                  {loadingResources ? (
+                    <TableSkeleton rows={5} columns={5} />
+                  ) : resources.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No resources found. Add your first resource!
                   </div>
@@ -541,6 +564,7 @@ export default function Dashboard() {
                     </Table>
                   </div>
                 )}
+               </DataErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
@@ -555,9 +579,10 @@ export default function Dashboard() {
                 </Button>
               </CardHeader>
               <CardContent>
-                {loadingCoaches ? (
-                  <div className="text-center py-8">Loading coaches...</div>
-                ) : coaches.length === 0 ? (
+                <DataErrorBoundary onRetry={fetchCoaches}>
+                  {loadingCoaches ? (
+                    <TableSkeleton rows={5} columns={6} />
+                  ) : coaches.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     No coaches found. Add your first coach!
                   </div>
@@ -645,6 +670,7 @@ export default function Dashboard() {
                     </Table>
                   </div>
                 )}
+               </DataErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>
@@ -693,9 +719,39 @@ export default function Dashboard() {
                 </div>
               </CardHeader>
               <CardContent>
-                {loadingSubmissions ? (
-                  <div className="text-center py-8">Loading submissions...</div>
-                ) : filteredSubmissions.length === 0 ? (
+                <DataErrorBoundary onRetry={fetchSubmissions}>
+                  {loadingSubmissions ? (
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] gap-4 px-4 py-2 bg-muted/50 rounded-lg text-sm font-medium text-muted-foreground">
+                        <div>Contact</div>
+                        <div>Date</div>
+                        <div>Interest</div>
+                        <div>Tags</div>
+                        <div>Status</div>
+                        <div className="justify-self-end">Actions</div>
+                      </div>
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="grid grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] gap-4 px-4 py-4 border-b border-border/50">
+                          <div className="space-y-2">
+                            <Skeleton className="h-4 w-3/4" />
+                            <Skeleton className="h-3 w-1/2" />
+                            <Skeleton className="h-3 w-2/3" />
+                          </div>
+                          <Skeleton className="h-4 w-16" />
+                          <Skeleton className="h-4 w-full" />
+                          <div className="flex gap-1">
+                            <Skeleton className="h-5 w-12" />
+                            <Skeleton className="h-5 w-16" />
+                          </div>
+                          <Skeleton className="h-8 w-20" />
+                          <div className="flex gap-2 justify-self-end">
+                            <Skeleton className="h-8 w-24" />
+                            <Skeleton className="h-8 w-24" />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  ) : filteredSubmissions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
                     {statusFilter === 'all' ? 'No submissions found.' : `No ${statusFilter} submissions found.`}
                   </div>
@@ -731,6 +787,7 @@ export default function Dashboard() {
                     ))}
                   </div>
                 )}
+               </DataErrorBoundary>
               </CardContent>
             </Card>
           </TabsContent>

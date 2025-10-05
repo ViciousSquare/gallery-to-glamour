@@ -123,7 +123,7 @@ const CoachingSection = () => {
             size="lg"
             className="border-primary text-primary hover:bg-primary hover:text-primary-foreground"
           >
-            <a href="#contact">
+            <a href="?interest=coach#contact">
               Apply to be an expert
             </a>
           </Button>

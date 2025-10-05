@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import { useSearchParams } from 'react-router-dom';
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,6 +13,7 @@ import { contactSubmissionSchema } from '@/lib/validation';
 import { logger } from '@/lib/logger';
 
 const ContactSection = () => {
+  const [searchParams] = useSearchParams();
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
@@ -21,10 +23,17 @@ const ContactSection = () => {
     interestArea: '',
     goals: '',
   });
-  
+
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    const interest = searchParams.get('interest');
+    if (interest) {
+      setFormData(prev => ({ ...prev, interestArea: interest }));
+    }
+  }, [searchParams]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
