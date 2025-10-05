@@ -16,8 +16,11 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
-import UserManagement from './UserManagement';
-import { Mail } from "lucide-react";
+import { SubmissionDetailsDialog } from '@/components/SubmissionDetailsDialog';
+import { NotesDialog } from '@/components/NotesDialog';
+
+import { Mail, MessageSquare } from "lucide-react";
+import { getTagColor } from '@/lib/constants';
 
 interface Resource {
   id: string;
@@ -55,11 +58,12 @@ interface Submission {
   goals: string | null;
   status: string;
   notes: string | null;
+  tags: string[];
 }
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const { user, userProfile, loading, signOut } = useAuth();
+  const { user, loading, signOut } = useAuth();
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -67,6 +71,8 @@ export default function Dashboard() {
   const [loadingCoaches, setLoadingCoaches] = useState(true);
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
   const [draftDialogOpen, setDraftDialogOpen] = useState(false);
+  const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
+  const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
 
   useEffect(() => {
@@ -129,7 +135,12 @@ export default function Dashboard() {
     if (error) {
       alert(`Error updating status: ${error.message}`);
     } else {
-      fetchSubmissions();
+      // Update only the affected submission in local state instead of refetching all
+      setSubmissions((prev) =>
+        prev.map((s) =>
+          s.id === id ? { ...s, status: newStatus } : s
+        )
+      );
     }
   };
 
@@ -196,9 +207,7 @@ export default function Dashboard() {
             <TabsTrigger value="resources">Resources</TabsTrigger>
             <TabsTrigger value="coaches">Coaches</TabsTrigger>
             <TabsTrigger value="submissions">Submissions</TabsTrigger>
-            {userProfile?.role === 'admin' && (
-              <TabsTrigger value="users">Users</TabsTrigger>
-            )}
+
           </TabsList>
 
           {/* Resources Tab */}
@@ -388,6 +397,7 @@ export default function Dashboard() {
                           <TableHead>Company</TableHead>
                           <TableHead>Role</TableHead>
                           <TableHead>Interest</TableHead>
+                          <TableHead>Tags</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
                           <TableHead>Draft Email</TableHead>
@@ -395,7 +405,14 @@ export default function Dashboard() {
                       </TableHeader>
                       <TableBody>
                         {submissions.map((submission) => (
-                          <TableRow key={submission.id}>
+                          <TableRow 
+                            key={submission.id}
+                            className="cursor-pointer hover:bg-gray-50"
+                            onClick={() => {
+                              setSelectedSubmission(submission);
+                              setDetailsDialogOpen(true);
+                            }}
+                          >
                             <TableCell>
                               {new Date(submission.created_at).toLocaleDateString()}
                             </TableCell>
@@ -406,6 +423,28 @@ export default function Dashboard() {
                             <TableCell>{submission.company || '-'}</TableCell>
                             <TableCell>{submission.role || '-'}</TableCell>
                             <TableCell>{submission.interest_area || '-'}</TableCell>
+                            <TableCell>
+                              {submission.tags && submission.tags.length > 0 ? (
+                                <div className="flex flex-wrap gap-1 max-w-[200px]">
+                                  {submission.tags.slice(0, 3).map((tag, index) => (
+                                    <Badge 
+                                      key={index}
+                                      variant="outline"
+                                      className={`${getTagColor(tag)} text-xs px-1.5 py-0.5`}
+                                    >
+                                      {tag}
+                                    </Badge>
+                                  ))}
+                                  {submission.tags.length > 3 && (
+                                    <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600">
+                                      +{submission.tags.length - 3}
+                                    </Badge>
+                                  )}
+                                </div>
+                              ) : (
+                                <span className="text-muted-foreground">-</span>
+                              )}
+                            </TableCell>
                             <TableCell>
                               <Badge 
                                 variant={
@@ -418,11 +457,26 @@ export default function Dashboard() {
                               </Badge>
                             </TableCell>
                             <TableCell>
-                              <div className="flex gap-2">
+                              <div className="flex gap-1 flex-wrap">
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleUpdateSubmissionStatus(submission.id, 'contacted')}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    setSelectedSubmission(submission);
+                                    setNotesDialogOpen(true);
+                                  }}
+                                >
+                                  <MessageSquare className="mr-1 h-3 w-3" />
+                                  Notes
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateSubmissionStatus(submission.id, 'contacted');
+                                  }}
                                   disabled={submission.status === 'contacted'}
                                 >
                                   Mark Contacted
@@ -430,7 +484,10 @@ export default function Dashboard() {
                                 <Button
                                   variant="outline"
                                   size="sm"
-                                  onClick={() => handleUpdateSubmissionStatus(submission.id, 'closed')}
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleUpdateSubmissionStatus(submission.id, 'closed');
+                                  }}
                                   disabled={submission.status === 'closed'}
                                 >
                                   Mark Completed
@@ -441,7 +498,8 @@ export default function Dashboard() {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() => {
+                                onClick={(e) => {
+                                  e.stopPropagation();
                                   setSelectedSubmission(submission);
                                   setDraftDialogOpen(true);
                                 }}
@@ -460,12 +518,7 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
-          {/* Users Tab - Admin Only */}
-          {userProfile?.role === 'admin' && (
-            <TabsContent value="users">
-              <UserManagement />
-            </TabsContent>
-          )}
+
 
         </Tabs>
       </main>
@@ -477,6 +530,19 @@ export default function Dashboard() {
           submission={selectedSubmission}
         />
       )}
+      
+      <SubmissionDetailsDialog
+        open={detailsDialogOpen}
+        onOpenChange={setDetailsDialogOpen}
+        submission={selectedSubmission}
+        onUpdate={fetchSubmissions}
+      />
+      
+      <NotesDialog
+        open={notesDialogOpen}
+        onOpenChange={setNotesDialogOpen}
+        submission={selectedSubmission}
+      />
     </div>
   );
 }
