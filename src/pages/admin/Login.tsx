@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
 import { analytics } from '@/analytics';
 import { Button } from '@/components/ui/button';
@@ -70,14 +70,19 @@ export default function Login() {
               </Alert>
             )}
 
-            <Button 
-              type="submit" 
+            <Button
+              type="submit"
               className="w-full"
               disabled={loading}
             >
               {loading ? 'Signing in...' : 'Sign In'}
             </Button>
           </form>
+          <div className="text-center mt-4">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-foreground">
+              ← Back to Homepage
+            </Link>
+          </div>
         </CardContent>
       </Card>
     </div>

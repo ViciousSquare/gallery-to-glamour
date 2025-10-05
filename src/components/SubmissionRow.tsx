@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, memo } from 'react';
+import { MessageSquare } from 'lucide-react';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
@@ -11,6 +12,7 @@ interface SubmissionRowProps {
   submission: Submission;
   onClick: () => void;
   onLlmAction: () => void;
+  onNotesAction: () => void;
   loadingSuggestions: Set<string>;
   onStatusChange: (id: string, status: string) => void;
 }
@@ -25,7 +27,7 @@ const getLlmActionLabel = (status: string) => {
   }
 };
 
-export function SubmissionRow({ submission, onClick, onLlmAction, loadingSuggestions, onStatusChange }: SubmissionRowProps) {
+export const SubmissionRow = memo(function SubmissionRow({ submission, onClick, onLlmAction, onNotesAction, loadingSuggestions, onStatusChange }: SubmissionRowProps) {
   const [status, setStatus] = useState<string>(submission.status);
 
   const onChangeStatus = async (next: string) => {
@@ -105,17 +107,33 @@ export function SubmissionRow({ submission, onClick, onLlmAction, loadingSuggest
         </SelectContent>
       </Select>
 
-      <Button
-        className="w-[200px] justify-self-end"
-        onClick={(e) => {
-          e.stopPropagation();
-          onLlmAction();
-        }}
-        disabled={loadingSuggestions.has(submission.id)}
-        aria-label={`${getLlmActionLabel(status)} for ${submission.first_name} ${submission.last_name}`}
-      >
-        {loadingSuggestions.has(submission.id) ? 'Loading...' : getLlmActionLabel(status)}
-      </Button>
+      <div className="flex flex-col gap-2 justify-self-end">
+        <Button
+          className="w-[200px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            onLlmAction();
+          }}
+          disabled={loadingSuggestions.has(submission.id)}
+          aria-label={`${getLlmActionLabel(status)} for ${submission.first_name} ${submission.last_name}`}
+        >
+          {loadingSuggestions.has(submission.id) ? 'Loading...' : getLlmActionLabel(status)}
+        </Button>
+
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-[200px]"
+          onClick={(e) => {
+            e.stopPropagation();
+            onNotesAction();
+          }}
+          aria-label={`View notes for ${submission.first_name} ${submission.last_name}`}
+        >
+          <MessageSquare className="h-4 w-4 mr-1" />
+          Notes
+        </Button>
+      </div>
     </div>
   );
-}
+});

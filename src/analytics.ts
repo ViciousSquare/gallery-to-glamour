@@ -107,6 +107,17 @@ class Analytics {
     };
 
     posthog.capture('$pageview', entryProps);
+
+    // Set UTM parameters as one-time properties for attribution
+    const utmProps: Props = {};
+    if (urlParams.get('utm_source')) utmProps.utm_source = urlParams.get('utm_source');
+    if (urlParams.get('utm_medium')) utmProps.utm_medium = urlParams.get('utm_medium');
+    if (urlParams.get('utm_campaign')) utmProps.utm_campaign = urlParams.get('utm_campaign');
+    if (urlParams.get('utm_term')) utmProps.utm_term = urlParams.get('utm_term');
+    if (urlParams.get('utm_content')) utmProps.utm_content = urlParams.get('utm_content');
+    if (Object.keys(utmProps).length > 0) {
+      posthog.people.set_once(utmProps);
+    }
   }
 
   isFeatureEnabled(flag: string) {

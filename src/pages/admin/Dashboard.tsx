@@ -193,6 +193,10 @@ export default function Dashboard() {
     }
   };
 
+  const handleOpenNotes = () => {
+    setNotesDialogOpen(true);
+  };
+
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -704,7 +708,7 @@ export default function Dashboard() {
                       <div>Interest</div>
                       <div>Tags</div>
                       <div>Status</div>
-                      <div className="justify-self-end">LLM Action</div>
+                      <div className="justify-self-end">Actions</div>
                     </div>
 
                     {/* Submission Rows */}
@@ -717,6 +721,10 @@ export default function Dashboard() {
                           setDetailsDialogOpen(true);
                         }}
                         onLlmAction={() => onLlmAction(submission)}
+                        onNotesAction={() => {
+                          setSelectedSubmission(submission);
+                          setNotesDialogOpen(true);
+                        }}
                         loadingSuggestions={loadingSuggestions}
                         onStatusChange={handleStatusChange}
                       />
@@ -745,6 +753,7 @@ export default function Dashboard() {
         onOpenChange={setDetailsDialogOpen}
         submission={selectedSubmission}
         onUpdate={fetchSubmissions}
+        onOpenNotes={handleOpenNotes}
       />
       
       <NotesDialog

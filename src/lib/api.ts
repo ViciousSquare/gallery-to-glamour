@@ -60,11 +60,6 @@ export const submissionsApi = {
 
   async updateStatus(id: string, status: string, resurfaceDate?: string) {
     const updateData: any = { status }
-    if (status === 'closed' && !resurfaceDate) {
-      const date = new Date()
-      date.setMonth(date.getMonth() + 6)
-      updateData.resurface_date = date.toISOString()
-    }
 
     const { error } = await supabase
       .from('contact_submissions')

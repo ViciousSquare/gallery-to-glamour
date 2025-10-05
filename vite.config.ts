@@ -18,6 +18,7 @@ export default defineConfig(({ mode }) => ({
   },
   build: {
     assetsDir: 'assets',
+    sourcemap: false, // Disable source maps in production for security
     rollupOptions: {
       output: {
         manualChunks: undefined,

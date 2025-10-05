@@ -105,7 +105,7 @@ CREATE POLICY "Allow authenticated users to manage submissions" ON contact_submi
   FOR ALL USING (auth.role() = 'authenticated');
 
 CREATE POLICY "Allow authenticated users to manage submission notes" ON submission_notes
-  FOR ALL USING (auth.role() = 'authenticated');
+  FOR ALL USING (auth.uid() = created_by);
 
 -- Allow public to insert contact submissions
 CREATE POLICY "Allow public to insert contact submissions" ON contact_submissions

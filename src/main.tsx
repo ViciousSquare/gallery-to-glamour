@@ -7,8 +7,11 @@ import { analytics } from "./analytics";
 
 // Environment validation happens automatically on import
 const postHogConfig = envValidator.getPostHogConfig();
-analytics.init(postHogConfig.key, postHogConfig.host);
-analytics.trackEntry();
+// Only initialize PostHog in production to avoid test/development noise
+if (import.meta.env.PROD) {
+  analytics.init(postHogConfig.key, postHogConfig.host);
+  analytics.trackEntry();
+}
 
 createRoot(document.getElementById("root")!).render(
   <React.StrictMode>

@@ -31,6 +31,7 @@ interface SubmissionDetailsDialogProps {
   onOpenChange: (open: boolean) => void;
   submission: Submission | null;
   onUpdate: () => void;
+  onOpenNotes?: () => void;
 }
 
 export function SubmissionDetailsDialog({
@@ -38,6 +39,7 @@ export function SubmissionDetailsDialog({
   onOpenChange,
   submission,
   onUpdate,
+  onOpenNotes,
 }: SubmissionDetailsDialogProps) {
   const { toast } = useToast();
   const [isUpdating, setIsUpdating] = useState(false);
@@ -379,12 +381,26 @@ export function SubmissionDetailsDialog({
               </AlertDialogFooter>
             </AlertDialogContent>
           </AlertDialog>
-          <Button
-            onClick={() => onOpenChange(false)}
-            disabled={isUpdating}
-          >
-            OK
-          </Button>
+          <div className="flex gap-2">
+            {onOpenNotes && (
+              <Button
+                variant="outline"
+                onClick={() => {
+                  onOpenChange(false);
+                  onOpenNotes();
+                }}
+                disabled={isUpdating}
+              >
+                Notes
+              </Button>
+            )}
+            <Button
+              onClick={() => onOpenChange(false)}
+              disabled={isUpdating}
+            >
+              OK
+            </Button>
+          </div>
         </div>
 
       </DialogContent>
