@@ -1,13 +1,15 @@
 import React from 'react';
+import { logger } from '@/lib/logger';
 
 interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
+  errorId?: string;
 }
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
-  fallback?: React.ComponentType<{ error?: Error; resetError: () => void }>;
+  fallback?: React.ComponentType<{ error?: Error; resetError: () => void; errorId?: string }>;
 }
 
 class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -17,11 +19,18 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
   }
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { hasError: true, error };
+    const errorId = `error_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    return { hasError: true, error, errorId };
   }
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error('Error caught by boundary:', error, errorInfo);
+    const errorId = this.state.errorId;
+    logger.error('React Error Boundary caught an error', {
+      error: error.message,
+      stack: error.stack,
+      componentStack: errorInfo.componentStack,
+      errorId,
+    });
   }
 
   resetError = () => {
@@ -32,7 +41,7 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
     if (this.state.hasError) {
       if (this.props.fallback) {
         const FallbackComponent = this.props.fallback;
-        return <FallbackComponent error={this.state.error} resetError={this.resetError} />;
+        return <FallbackComponent error={this.state.error} resetError={this.resetError} errorId={this.state.errorId} />;
       }
 
       return (
@@ -42,6 +51,11 @@ class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundarySta
             <p className="text-muted-foreground mb-4">
               An unexpected error occurred. Please try refreshing the page.
             </p>
+            {this.state.errorId && (
+              <p className="text-xs text-muted-foreground mb-4">
+                Error ID: {this.state.errorId}
+              </p>
+            )}
             <button
               onClick={this.resetError}
               className="px-4 py-2 bg-primary text-primary-foreground rounded hover:bg-primary/90"

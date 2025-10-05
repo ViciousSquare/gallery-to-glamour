@@ -1,12 +1,8 @@
 import { createClient } from '@supabase/supabase-js'
 import type { Resource } from './types'
+import { envValidator } from './env'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
-
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error('Missing Supabase environment variables')
-}
+const { url: supabaseUrl, anonKey: supabaseAnonKey } = envValidator.getSupabaseConfig()
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 

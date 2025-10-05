@@ -38,7 +38,9 @@ CREATE TABLE IF NOT EXISTS contact_submissions (
   status TEXT DEFAULT 'new',
   notes TEXT,
   tags TEXT[] DEFAULT '{}',
-  resurface_date TIMESTAMP WITH TIME ZONE
+  resurface_date TIMESTAMP WITH TIME ZONE,
+  ip_address INET,
+  user_agent TEXT
 );
 
 -- Drop existing check constraint if it exists

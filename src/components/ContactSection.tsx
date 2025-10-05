@@ -9,6 +9,7 @@ import { Mail, Send, CheckCircle2 } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { contactSubmissionSchema } from '@/lib/validation';
+import { logger } from '@/lib/logger';
 
 const ContactSection = () => {
   const [formData, setFormData] = useState({
@@ -31,6 +32,11 @@ const ContactSection = () => {
     setError('');
     setSuccess(false);
 
+    logger.userAction('contact_form_submitted', {
+      email: formData.email,
+      interestArea: formData.interestArea,
+    });
+
     try {
       const validationResult = contactSubmissionSchema.safeParse({
         firstName: formData.firstName,
@@ -43,49 +49,45 @@ const ContactSection = () => {
       });
 
       if (!validationResult.success) {
-        setError(validationResult.error.errors[0].message);
+        const validationError = validationResult.error.errors[0].message;
+        logger.warn('Contact form validation failed', {
+          email: formData.email,
+          error: validationError,
+        });
+        setError(validationError);
         setLoading(false);
         return;
       }
 
-      const { data: recentSubmission } = await supabase
-        .from('submission_rate_limits')
-        .select('*')
-        .eq('email', formData.email)
-        .gte('submitted_at', new Date(Date.now() - 60 * 60 * 1000).toISOString())
-        .single();
+      // Call the secure Edge Function for contact submission
+      const { data, error } = await supabase.functions.invoke('submit-contact', {
+        body: {
+          firstName: formData.firstName,
+          lastName: formData.lastName,
+          email: formData.email,
+          company: formData.company,
+          role: formData.role,
+          interestArea: formData.interestArea,
+          goals: formData.goals,
+        }
+      });
 
-      if (recentSubmission) {
-        setError('You\'ve already submitted recently. Please wait an hour before submitting again.');
+      if (error) {
+        logger.apiError('contact_submission', error);
+
+        if (error.message?.includes('Rate limit exceeded')) {
+          setError('You\'ve submitted too many requests recently. Please wait before trying again.');
+        } else {
+          setError(error.message || 'Something went wrong. Please try again.');
+        }
         setLoading(false);
         return;
       }
 
-      const userAgent = navigator.userAgent;
-      
-      const { error: insertError } = await supabase
-        .from('contact_submissions')
-        .insert([{
-          first_name: formData.firstName,
-          last_name: formData.lastName,
-          email: formData.email,
-          company: formData.company || null,
-          role: formData.role || null,
-          interest_area: formData.interestArea || null,
-          goals: formData.goals || null,
-          user_agent: userAgent,
-        }]);
-
-      if (insertError) throw insertError;
-
-      await supabase
-        .from('submission_rate_limits')
-        .insert([{
-          email: formData.email,
-          ip_address: 'browser',
-        }]);
-
-      await supabase.rpc('clean_old_rate_limits');
+      logger.info('Contact form submitted successfully', {
+        email: formData.email,
+        submissionId: data?.id,
+      });
 
       setSuccess(true);
       setFormData({
@@ -99,6 +101,7 @@ const ContactSection = () => {
       });
 
     } catch (err: any) {
+      logger.error('Unexpected error in contact form submission', err);
       setError(err.message || 'Something went wrong. Please try again.');
     } finally {
       setLoading(false);

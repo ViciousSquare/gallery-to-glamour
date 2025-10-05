@@ -2,12 +2,12 @@ import React from "react";
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
-import { validateEnv } from "@/lib/env";
+import { envValidator } from "@/lib/env";
 import { analytics } from "./analytics";
 
-validateEnv();
-
-analytics.init(import.meta.env.VITE_POSTHOG_KEY, import.meta.env.VITE_POSTHOG_HOST || undefined);
+// Environment validation happens automatically on import
+const postHogConfig = envValidator.getPostHogConfig();
+analytics.init(postHogConfig.key, postHogConfig.host);
 analytics.trackEntry();
 
 createRoot(document.getElementById("root")!).render(

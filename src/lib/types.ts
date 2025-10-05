@@ -37,4 +37,6 @@ export interface Submission {
   tags: string[]
   resurface_date: string | null
   deleted_at: string | null
+  ip_address: string | null
+  user_agent: string | null
 }

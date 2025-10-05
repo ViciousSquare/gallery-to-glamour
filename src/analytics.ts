@@ -131,10 +131,10 @@ class Analytics {
 
     try {
       const { createClient } = await import('@supabase/supabase-js');
-      const supabase = createClient(
-        import.meta.env.VITE_SUPABASE_URL,
-        import.meta.env.VITE_SUPABASE_ANON_KEY
-      );
+      const { envValidator } = await import('./lib/env');
+      const { url, anonKey } = envValidator.getSupabaseConfig();
+
+      const supabase = createClient(url, anonKey);
 
       const { data, error } = await supabase.functions.invoke('get-analytics');
 
