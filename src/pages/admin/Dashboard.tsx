@@ -63,6 +63,7 @@ interface Submission {
   notes: string | null;
   tags: string[];
   resurface_date: string | null;
+  deleted_at: string | null;
 }
 
 const getLlmActionLabel = (status: string) => {
@@ -145,6 +146,7 @@ export default function Dashboard() {
     const { data, error } = await supabase
       .from('contact_submissions')
       .select('*')
+      .is('deleted_at', null)
       .order('created_at', { ascending: false });
 
     if (error) {
@@ -249,7 +251,13 @@ export default function Dashboard() {
     const isResurfaced = submission.resurface_date && new Date(submission.resurface_date) <= new Date();
 
     return (
-      <div className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}>
+      <div
+        className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
+        onClick={() => {
+          setSelectedSubmission(submission);
+          setDetailsDialogOpen(true);
+        }}
+      >
         <div className="max-w-[260px] space-y-0.5">
           <div className="font-semibold flex items-center gap-2">
             {submission.first_name} {submission.last_name}

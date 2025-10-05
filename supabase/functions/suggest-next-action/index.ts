@@ -44,31 +44,32 @@ serve(async (req) => {
       })
     }
 
-    const { submission, notes } = await req.json()
+    const { editedSubmission, notes, furtherContext } = await req.json()
 
     // Build context about the submission and notes
-    const notesHistory = notes.length > 0 
+    const notesHistory = notes.length > 0
       ? notes.map((note: any) => `${new Date(note.created_at).toLocaleDateString()}: ${note.content}`).join('\n')
       : 'No notes yet'
 
-    const tagsText = submission.tags && submission.tags.length > 0 
-      ? submission.tags.join(', ') 
+    const tagsText = editedSubmission.tags && editedSubmission.tags.length > 0
+      ? editedSubmission.tags.join(', ')
       : 'No tags'
 
     const prompt = `You are an AI assistant helping the team at AI for Canadians, a consulting service helping Canadian businesses adopt AI effectively. The team offers coaching, strategy consulting, training programs, and implementation support.
 
 Context about this lead:
-- Name: ${submission.first_name} ${submission.last_name}
-- Email: ${submission.email}
-- Company: ${submission.company || 'Not provided'}
-- Role: ${submission.role || 'Not provided'}
-- Interest Area: ${submission.interest_area || 'Not provided'}
-- Goals: ${submission.goals || 'Not provided'}
-- Current Status: ${submission.status}
+- Name: ${editedSubmission.first_name} ${editedSubmission.last_name}
+- Email: ${editedSubmission.email}
+- Company: ${editedSubmission.company || 'Not provided'}
+- Role: ${editedSubmission.role || 'Not provided'}
+- Interest Area: ${editedSubmission.interest_area || 'Not provided'}
+- Goals: ${editedSubmission.goals || 'Not provided'}
+- Current Status: ${editedSubmission.status}
 - Tags: ${tagsText}
 
 Notes History (chronological):
 ${notesHistory}
+${furtherContext ? `\nAdditional Context:\n${furtherContext}` : ''}
 
 Based on this lead's history, current state, and the context that AI for Canadians helps Canadian businesses adopt AI through coaching, strategy, training and implementation, what's the single most actionable next step to move them forward in the sales process?
 
@@ -124,7 +125,7 @@ Your suggestion:`
       .from('draft_introduction_logs')
       .insert({
         user_id: user.id,
-        submission_id: submission.id,
+        submission_id: editedSubmission.id,
         tokens_used: openRouterData.usage?.total_tokens || 0,
         estimated_cost: estimatedCost
       })

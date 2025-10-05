@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { X } from 'lucide-react';
+import { X, Trash2 } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import {
   ALL_SUBMISSION_TAGS,
@@ -35,6 +35,7 @@ interface Submission {
   notes: string | null;
   tags: string[];
   resurface_date: string | null;
+  deleted_at: string | null;
 }
 
 
@@ -173,6 +174,34 @@ export function SubmissionDetailsDialog({
         description: `Updated resurface date for ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
+    }
+    setIsUpdating(false);
+  };
+
+  const handleDelete = async () => {
+    if (!confirm(`Are you sure you want to delete the submission for ${currentSubmission.first_name} ${currentSubmission.last_name}? This will hide it from the dashboard but keep the data.`)) {
+      return;
+    }
+
+    setIsUpdating(true);
+    const { error } = await supabase
+      .from('contact_submissions')
+      .update({ deleted_at: new Date().toISOString() })
+      .eq('id', currentSubmission.id);
+
+    if (error) {
+      toast({
+        title: "Error",
+        description: `Failed to delete submission: ${error.message}`,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Submission Deleted",
+        description: `Submission for ${currentSubmission.first_name} ${currentSubmission.last_name} has been deleted`,
+      });
+      onUpdate();
+      onOpenChange(false);
     }
     setIsUpdating(false);
   };
@@ -360,6 +389,24 @@ export function SubmissionDetailsDialog({
           </div>
         )}
 
+        {/* Action Buttons */}
+        <div className="flex justify-between pt-4 border-t">
+          <Button
+            variant="destructive"
+            onClick={handleDelete}
+            disabled={isUpdating}
+            className="flex items-center gap-2"
+          >
+            <Trash2 className="h-4 w-4" />
+            Delete
+          </Button>
+          <Button
+            onClick={() => onOpenChange(false)}
+            disabled={isUpdating}
+          >
+            OK
+          </Button>
+        </div>
 
       </DialogContent>
     </Dialog>

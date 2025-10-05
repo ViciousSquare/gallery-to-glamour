@@ -1,7 +1,9 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Copy, Lightbulb, Loader2, AlertCircle } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
@@ -14,12 +16,39 @@ interface NextStepsDialogProps {
 }
 
 export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: NextStepsDialogProps) => {
-  const [loading, setLoading] = useState(false);
-  const [suggestion, setSuggestion] = useState("");
-  const [cost, setCost] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+   const [loading, setLoading] = useState(false);
+   const [suggestion, setSuggestion] = useState("");
+   const [cost, setCost] = useState<string | null>(null);
+   const [error, setError] = useState<string | null>(null);
 
-  const generateSuggestion = async () => {
+   // Editable fields
+   const [editedFirstName, setEditedFirstName] = useState(submission.first_name);
+   const [editedLastName, setEditedLastName] = useState(submission.last_name);
+   const [editedEmail, setEditedEmail] = useState(submission.email);
+   const [editedCompany, setEditedCompany] = useState(submission.company || "");
+   const [editedRole, setEditedRole] = useState(submission.role || "");
+   const [editedInterestArea, setEditedInterestArea] = useState(submission.interest_area || "");
+   const [editedGoals, setEditedGoals] = useState(submission.goals || "");
+   const [editedTags, setEditedTags] = useState(submission.tags?.join(', ') || "");
+   const [furtherContext, setFurtherContext] = useState("");
+
+   // Reset states when submission changes
+   useEffect(() => {
+     setSuggestion("");
+     setCost(null);
+     setError(null);
+     setEditedFirstName(submission.first_name);
+     setEditedLastName(submission.last_name);
+     setEditedEmail(submission.email);
+     setEditedCompany(submission.company || "");
+     setEditedRole(submission.role || "");
+     setEditedInterestArea(submission.interest_area || "");
+     setEditedGoals(submission.goals || "");
+     setEditedTags(submission.tags?.join(', ') || "");
+     setFurtherContext("");
+   }, [submission.id]);
+
+   const generateSuggestion = async () => {
     setLoading(true);
     setError(null);
 
@@ -36,11 +65,24 @@ export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: 
         throw new Error(`Error fetching notes: ${notesError.message}`);
       }
 
+      const editedSubmission = {
+        ...submission,
+        first_name: editedFirstName,
+        last_name: editedLastName,
+        email: editedEmail,
+        company: editedCompany || null,
+        role: editedRole || null,
+        interest_area: editedInterestArea || null,
+        goals: editedGoals || null,
+        tags: editedTags.split(',').map(tag => tag.trim()).filter(tag => tag),
+      };
+
       const { data, error } = await supabase.functions.invoke('suggest-next-action', {
         body: {
-          submission,
+          editedSubmission,
           notes: notes || [],
-          actionType
+          actionType,
+          furtherContext: furtherContext.trim() || null
         }
       });
 
@@ -86,12 +128,98 @@ export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: 
 
         {!suggestion && !loading && (
           <div className="space-y-4">
-            <div className="bg-muted p-4 rounded-lg space-y-2">
-              <p className="text-sm"><strong>Name:</strong> {submission.first_name} {submission.last_name}</p>
-              <p className="text-sm"><strong>Email:</strong> {submission.email}</p>
-              <p className="text-sm"><strong>Status:</strong> {submission.status}</p>
-              <p className="text-sm"><strong>Company:</strong> {submission.company || 'Not provided'}</p>
-              <p className="text-sm"><strong>Goals:</strong> {submission.goals || 'Not provided'}</p>
+            <div className="bg-muted p-4 rounded-lg space-y-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="firstName" className="text-sm font-medium">First Name</Label>
+                  <Input
+                    id="firstName"
+                    value={editedFirstName}
+                    onChange={(e) => setEditedFirstName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="lastName" className="text-sm font-medium">Last Name</Label>
+                  <Input
+                    id="lastName"
+                    value={editedLastName}
+                    onChange={(e) => setEditedLastName(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="email" className="text-sm font-medium">Email</Label>
+                <Input
+                  id="email"
+                  type="email"
+                  value={editedEmail}
+                  onChange={(e) => setEditedEmail(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="company" className="text-sm font-medium">Company</Label>
+                  <Input
+                    id="company"
+                    value={editedCompany}
+                    onChange={(e) => setEditedCompany(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label htmlFor="role" className="text-sm font-medium">Role</Label>
+                  <Input
+                    id="role"
+                    value={editedRole}
+                    onChange={(e) => setEditedRole(e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="interestArea" className="text-sm font-medium">Interest Area</Label>
+                <Input
+                  id="interestArea"
+                  value={editedInterestArea}
+                  onChange={(e) => setEditedInterestArea(e.target.value)}
+                  className="mt-1"
+                />
+              </div>
+              <div>
+                <Label htmlFor="goals" className="text-sm font-medium">Goals</Label>
+                <Textarea
+                  id="goals"
+                  value={editedGoals}
+                  onChange={(e) => setEditedGoals(e.target.value)}
+                  className="mt-1"
+                  rows={2}
+                />
+              </div>
+              <div>
+                <Label htmlFor="tags" className="text-sm font-medium">Tags (comma-separated)</Label>
+                <Input
+                  id="tags"
+                  value={editedTags}
+                  onChange={(e) => setEditedTags(e.target.value)}
+                  className="mt-1"
+                  placeholder="e.g. interested, follow-up, high-priority"
+                />
+              </div>
+              <div>
+                <Label htmlFor="furtherContext" className="text-sm font-medium">Further Context (Optional)</Label>
+                <Textarea
+                  id="furtherContext"
+                  value={furtherContext}
+                  onChange={(e) => setFurtherContext(e.target.value)}
+                  className="mt-1"
+                  placeholder="Add any additional context for the AI suggestion..."
+                  rows={3}
+                />
+              </div>
+              <p className="text-sm text-muted-foreground"><strong>Status:</strong> {submission.status}</p>
             </div>
 
             <Button onClick={generateSuggestion} className="w-full" size="lg">
