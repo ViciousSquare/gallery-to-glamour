@@ -11,7 +11,7 @@ const ResourcesSection = () => {
   const [resources, setResources] = useState<Resource[]>([]);
   const [loading, setLoading] = useState(true);
 
-const categories = [
+  const categories = [
     { name: "All Resources" },
     { name: "Programs" },
     { name: "Research" },
@@ -21,13 +21,11 @@ const categories = [
     { name: "Events" },
   ];
 
-  console.log('Component render - loading:', loading, 'resources:', resources.length);
   useEffect(() => {
     fetchResources();
   }, []);
 
   async function fetchResources() {
-    console.log('Fetching resources...')
     try {
       const { data, error } = await supabase
         .from('resources')
@@ -35,25 +33,26 @@ const categories = [
         .order('featured', { ascending: false })
         .order('created_at', { ascending: false });
 
-        console.log('Supabase response:', { data, error });
-
       if (error) throw error;
       setResources(data || []);
-      console.log('Resources set:', data?.length)
     } catch (error) {
       console.error('Error fetching resources:', error);
     } finally {
       setLoading(false);
-      console.log('Loading set to false');
     }
   }
-
 
   const filteredResources = activeCategory === "All Resources" 
     ? resources 
     : resources.filter(resource => resource.category === activeCategory);
-  console.log('Filtered resources:', filteredResources.length)
-  const displayedResources = showAll ? filteredResources : filteredResources.slice(0, 6);
+  
+  const sortedResources = [...filteredResources].sort((a, b) => {
+    if (a.featured && !b.featured) return -1;
+    if (!a.featured && b.featured) return 1;
+    return 0;
+  });
+  
+  const displayedResources = showAll ? sortedResources : sortedResources.slice(0, 6);
   const hasMore = filteredResources.length > 6;
 
   if (loading) {
@@ -80,7 +79,7 @@ const categories = [
         </div>
 
         {/* Category Filters */}
-        <div className="flex flex-wrap justify-center gap-2 mb-12">
+        <div className="flex flex-wrap justify-center gap-2 mb-12 max-w-4xl mx-auto">
           {categories.map((category) => (
             <Button
               key={category.name}
@@ -100,22 +99,78 @@ const categories = [
           ))}
         </div>
 
-        {/* Resources Grid */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {displayedResources.map((resource, index) => (
+{/* Featured Resource - if any */}
+        {displayedResources.filter(r => r.featured).length > 0 && (
+          <div className="flex justify-center mb-12">
+            {displayedResources.filter(r => r.featured).map((resource, index) => (
+              <Card
+                key={`featured-${index}`}
+                className="group hover:shadow-xl transition-all duration-300 border-primary border-2 w-full max-w-md hover:-translate-y-1"
+              >
+                <CardHeader className="pb-4">
+                  <div className="mb-4">
+                    <h3 className="text-xl font-semibold text-navy group-hover:text-primary transition-colors mb-3">
+                      {resource.title}
+                    </h3>
+                    {resource.eligibility && (
+                      <p className="text-sm text-muted-foreground mb-2">
+                        <strong>Eligibility:</strong> {resource.eligibility}
+                      </p>
+                    )}
+                    {resource.deadline && (
+                      <p className="text-sm text-muted-foreground">
+                        <strong>Deadline:</strong> {resource.deadline}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex flex-wrap gap-2">
+                    {resource.tags.map((tag) => (
+                      <Badge
+                        key={tag}
+                        variant={tag === "Featured" ? "default" : "secondary"}
+                        className={
+                          tag === "Featured"
+                            ? "bg-primary text-primary-foreground"
+                            : "bg-secondary text-secondary-foreground"
+                        }
+                      >
+                        {tag}
+                      </Badge>
+                    ))}
+                  </div>
+                </CardHeader>
+                <CardContent className="pt-0">
+                  <p className="text-muted-foreground mb-6 leading-relaxed">
+                    {resource.description}
+                  </p>
+                  <Button
+                    variant="outline"
+                    className="w-full border-muted-foreground text-muted-foreground hover:bg-muted group-hover:border-primary group-hover:text-primary transition-colors"
+                    onClick={() => window.open(resource.url, '_blank')}
+                  >
+                    Learn More
+                    <ExternalLink className="ml-2 h-4 w-4" />
+                  </Button>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        )}
+
+        {/* Regular Resources Grid */}
+        <div className="flex flex-wrap justify-center gap-6 max-w-7xl mx-auto">
+          {displayedResources.filter(r => !r.featured).map((resource, index) => (
             <Card
               key={index}
-              className={`group hover:shadow-lg transition-all duration-300 ${
-                resource.featured ? "border-primary border-2" : "border-border"
-              }`}
+              className="group hover:shadow-xl transition-all duration-300 border-border hover:-translate-y-1 bg-card flex flex-col w-full max-w-sm sm:w-[calc(50%-0.75rem)] lg:w-[calc(33.333%-1rem)] xl:w-[calc(25%-1.125rem)]"
             >
-              <CardHeader className="pb-3">
-                <div className="mb-3">
-                  <h3 className="text-xl font-semibold text-navy group-hover:text-primary transition-colors mb-2">
+              <CardHeader className="pb-4">
+                <div className="mb-4">
+                  <h3 className="text-xl font-semibold text-navy group-hover:text-primary transition-colors mb-3">
                     {resource.title}
                   </h3>
                   {resource.eligibility && (
-                    <p className="text-sm text-muted-foreground mb-1">
+                    <p className="text-sm text-muted-foreground mb-2">
                       <strong>Eligibility:</strong> {resource.eligibility}
                     </p>
                   )}
@@ -129,25 +184,21 @@ const categories = [
                   {resource.tags.map((tag) => (
                     <Badge
                       key={tag}
-                      variant={tag === "Featured" ? "default" : "secondary"}
-                      className={
-                        tag === "Featured"
-                          ? "bg-primary text-primary-foreground"
-                          : "bg-secondary text-secondary-foreground"
-                      }
+                      variant="secondary"
+                      className="bg-secondary text-secondary-foreground"
                     >
                       {tag}
                     </Badge>
                   ))}
                 </div>
               </CardHeader>
-              <CardContent>
-                <p className="text-muted-foreground mb-4 leading-relaxed">
+              <CardContent className="pt-0 flex-1 flex flex-col">
+                <p className="text-muted-foreground mb-6 leading-relaxed flex-1">
                   {resource.description}
                 </p>
                 <Button
                   variant="outline"
-                  className="w-full border-muted-foreground text-muted-foreground hover:bg-muted group-hover:border-primary group-hover:text-primary"
+                  className="w-full border-muted-foreground text-muted-foreground hover:bg-muted group-hover:border-primary group-hover:text-primary transition-colors"
                   onClick={() => window.open(resource.url, '_blank')}
                 >
                   Learn More

@@ -1,6 +1,8 @@
 import { MapPin, Mail } from "lucide-react";
 
 const Footer = () => {
+  const currentYear = new Date().getFullYear();
+  
   return (
     <footer className="bg-navy text-navy-foreground py-16 px-4">
       <div className="container mx-auto max-w-7xl">
@@ -114,13 +116,13 @@ const Footer = () => {
 
         <div className="border-t border-navy-foreground/20 mt-12 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-navy-foreground/60 text-sm">
-            © 2024 AI for Canadians.org. All rights reserved.
+            © {currentYear} AI for Canadians.org. All rights reserved.
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
-            <a href="#" className="text-navy-foreground/60 hover:text-primary text-sm transition-colors">
+            <a href="/privacy" className="text-navy-foreground/60 hover:text-primary text-sm transition-colors">
               Privacy Policy
             </a>
-            <a href="#" className="text-navy-foreground/60 hover:text-primary text-sm transition-colors">
+            <a href="/terms" className="text-navy-foreground/60 hover:text-primary text-sm transition-colors">
               Terms of Service
             </a>
           </div>

@@ -7,6 +7,7 @@ import {
   HoverCardContent,
   HoverCardTrigger,
 } from "@/components/ui/hover-card";
+import { useScrollAnimationMultiple } from "@/hooks/useScrollAnimation";
 
 interface Coach {
   id: string;
@@ -18,6 +19,7 @@ interface Coach {
 }
 
 const CoachingSection = () => {
+  useScrollAnimationMultiple();
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +45,7 @@ const CoachingSection = () => {
   return (
     <section id="coaching" className="py-20 px-4 bg-muted/30">
       <div className="container mx-auto max-w-7xl">
-        <div className="text-center mb-12">
+        <div className="text-center mb-12 scroll-fade">
           <h2 className="text-4xl font-bold text-navy mb-4">
             Personalized AI Navigation for Canadian Leaders
           </h2>
@@ -54,7 +56,7 @@ const CoachingSection = () => {
         </div>
 
         {/* Coaches Grid */}
-        <div className="mb-16">
+        <div className="mb-16 scroll-fade">
           <h3 className="text-2xl font-bold text-navy text-center mb-8">Expert Navigators and Coaches</h3>
           
           {loading ? (
