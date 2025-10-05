@@ -2,7 +2,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts"
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
 
 const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': 'https://aiforcanadians.org',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
@@ -12,10 +12,15 @@ serve(async (req) => {
   }
 
   try {
-    const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-    )
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
+    const openRouterKey = Deno.env.get('OPENROUTER_API_KEY')
+
+    if (!supabaseUrl || !supabaseServiceKey || !openRouterKey) {
+      throw new Error('Missing required environment variables')
+    }
+
+    const supabaseClient = createClient(supabaseUrl, supabaseServiceKey)
 
     // Verify authentication
     const authHeader = req.headers.get('Authorization')!
@@ -70,7 +75,7 @@ Write only the email body, no subject line.`
     const openRouterResponse = await fetch('https://openrouter.ai/api/v1/chat/completions', {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${Deno.env.get('OPENROUTER_API_KEY')}`,
+        'Authorization': `Bearer ${openRouterKey}`,
         'Content-Type': 'application/json',
         'HTTP-Referer': 'https://aiforcanadians.org',
         'X-Title': 'AI for Canadians Admin'

@@ -16,55 +16,18 @@ import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
 import { SubmissionDetailsDialog } from '@/components/SubmissionDetailsDialog';
 import { NotesDialog } from '@/components/NotesDialog';
 import { NextStepsDialog } from '@/components/NextStepsDialog';
+import { SubmissionRow } from '@/components/SubmissionRow';
 
 import { Mail, MessageSquare, Lightbulb } from "lucide-react";
 import { getTagColor } from '@/lib/constants';
 import { toast } from "sonner";
-
-interface Resource {
-  id: string;
-  title: string;
-  description: string;
-  category: string;
-  tags: string[];
-  url: string;
-  eligibility: string | null;
-  deadline: string | null;
-  featured: boolean;
-  created_at: string;
-}
-
-interface Coach {
-  id: string;
-  name: string;
-  bio: string | null;
-  image_url: string | null;
-  linkedin_url: string | null;
-  display_order: number;
-  active: boolean;
-  created_at: string;
-}
-
-interface Submission {
-  id: string;
-  created_at: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  company: string | null;
-  role: string | null;
-  interest_area: string | null;
-  goals: string | null;
-  status: string;
-  notes: string | null;
-  tags: string[];
-  resurface_date: string | null;
-  deleted_at: string | null;
-}
+import type { Resource, Coach, Submission } from '@/lib/types';
+import { resourcesApi, coachesApi, submissionsApi } from '@/lib/api';
 
 const getLlmActionLabel = (status: string) => {
   switch (status) {
@@ -92,6 +55,8 @@ export default function Dashboard() {
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
   const [loadingSuggestions, setLoadingSuggestions] = useState<Set<string>>(new Set());
   const [statusFilter, setStatusFilter] = useState<string>('all');
+  const [deleteResourceDialog, setDeleteResourceDialog] = useState<{ open: boolean; resource: Resource | null }>({ open: false, resource: null });
+  const [deleteCoachDialog, setDeleteCoachDialog] = useState<{ open: boolean; coach: Coach | null }>({ open: false, coach: null });
 
   // Filter submissions based on status
   const filteredSubmissions = submissions.filter(submission => {
@@ -107,95 +72,72 @@ export default function Dashboard() {
 
   const fetchResources = async () => {
     setLoadingResources(true);
-    const { data, error } = await supabase
-      .from('resources')
-      .select('*')
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const data = await resourcesApi.fetchAll();
+      setResources(data);
+    } catch (error: any) {
       console.error('Error fetching resources:', error);
       toast.error("Error fetching resources", {
         description: error.message
       });
-    } else {
-      setResources(data || []);
     }
     setLoadingResources(false);
   };
 
   const fetchCoaches = async () => {
     setLoadingCoaches(true);
-    const { data, error } = await supabase
-      .from('coaches')
-      .select('*')
-      .order('display_order', { ascending: true });
-
-    if (error) {
+    try {
+      const data = await coachesApi.fetchAll();
+      setCoaches(data);
+    } catch (error: any) {
       console.error('Error fetching coaches:', error);
       toast.error("Error fetching coaches", {
         description: error.message
       });
-    } else {
-      setCoaches(data || []);
     }
     setLoadingCoaches(false);
   };
 
   const fetchSubmissions = async () => {
     setLoadingSubmissions(true);
-    const { data, error } = await supabase
-      .from('contact_submissions')
-      .select('*')
-      .is('deleted_at', null)
-      .order('created_at', { ascending: false });
-
-    if (error) {
+    try {
+      const data = await submissionsApi.fetchAll();
+      setSubmissions(data);
+    } catch (error: any) {
       console.error('Error fetching submissions:', error);
       toast.error("Error fetching submissions", {
         description: error.message
       });
-    } else {
-      setSubmissions(data || []);
     }
     setLoadingSubmissions(false);
   };
 
 
-  const handleDeleteResource = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) {
-      return;
-    }
+  const handleDeleteResource = async () => {
+    if (!deleteResourceDialog.resource) return;
 
-    const { error } = await supabase
-      .from('resources')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await resourcesApi.delete(deleteResourceDialog.resource.id);
+      fetchResources();
+      setDeleteResourceDialog({ open: false, resource: null });
+    } catch (error: any) {
       toast.error("Error deleting resource", {
         description: error.message
       });
-    } else {
-      fetchResources();
     }
   };
 
-  const handleDeleteCoach = async (id: string, name: string) => {
-    if (!confirm(`Are you sure you want to delete coach "${name}"?`)) {
-      return;
-    }
+  const handleDeleteCoach = async () => {
+    if (!deleteCoachDialog.coach) return;
 
-    const { error } = await supabase
-      .from('coaches')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
+    try {
+      await coachesApi.delete(deleteCoachDialog.coach.id);
+      fetchCoaches();
+      setDeleteCoachDialog({ open: false, coach: null });
+    } catch (error: any) {
       toast.error("Error deleting coach", {
         description: error.message
       });
-    } else {
-      fetchCoaches();
     }
   };
 
@@ -204,127 +146,25 @@ export default function Dashboard() {
     navigate('/admin/login');
   };
 
-  const SubmissionRow = ({ submission }: { submission: Submission }) => {
-    const [status, setStatus] = useState<string>(submission.status);
-
-    const onChangeStatus = async (next: string) => {
-      setStatus(next);
-
-      // Calculate resurface date if status is changing to 'closed'
-      const updateData: any = { status: next };
-      if (next === 'closed') {
-        const resurfaceDate = new Date();
-        resurfaceDate.setMonth(resurfaceDate.getMonth() + 6);
-        updateData.resurface_date = resurfaceDate.toISOString();
-      }
-
-      const { error } = await supabase
-        .from('contact_submissions')
-        .update(updateData)
-        .eq('id', submission.id);
-      if (error) {
-        toast.error("Error updating status", {
-          description: error.message
-        });
-        setStatus(submission.status);
-      } else {
-        // Update local state
-        setSubmissions((prev) =>
-          prev.map((s) =>
-            s.id === submission.id ? { ...s, status: next, resurface_date: updateData.resurface_date || s.resurface_date } : s
-          )
-        );
-      }
-    };
-
-    const onLlmAction = async () => {
-      if (status === 'new') {
-        setSelectedSubmission(submission);
-        setDraftDialogOpen(true);
-      } else {
-        // For other statuses, open NextStepsDialog
-        setSelectedSubmission(submission);
-        setNextStepsDialogOpen(true);
-      }
-    };
-
-    const isResurfaced = submission.resurface_date && new Date(submission.resurface_date) <= new Date();
-
-    return (
-      <div
-        className={`grid items-start gap-4 grid-cols-[260px_120px_minmax(240px,1fr)_180px_160px_200px] py-4 cursor-pointer hover:bg-muted/50 transition-colors ${isResurfaced ? 'bg-yellow-50 border-l-4 border-yellow-400' : ''}`}
-        onClick={() => {
-          setSelectedSubmission(submission);
-          setDetailsDialogOpen(true);
-        }}
-      >
-        <div className="max-w-[260px] space-y-0.5">
-          <div className="font-semibold flex items-center gap-2">
-            {submission.first_name} {submission.last_name}
-            {isResurfaced && <Badge variant="outline" className="text-xs bg-yellow-100 text-yellow-800 border-yellow-300">Resurface</Badge>}
-          </div>
-          <div className="text-muted-foreground truncate">
-            <a href={`mailto:${submission.email}`} className="hover:underline">
-              {submission.email}
-            </a>
-          </div>
-          <div className="text-muted-foreground truncate">{submission.company || '—'}</div>
-          <div className="text-muted-foreground">{submission.role || '—'}</div>
-          <div className="text-muted-foreground">{submission.interest_area || '—'}</div>
-        </div>
-
-        <div className="text-xs text-muted-foreground">
-          {new Date(submission.created_at).toLocaleDateString()}
-        </div>
-
-        <div className="text-sm leading-snug line-clamp-2">
-          {submission.goals || submission.notes || '—'}
-        </div>
-
-        <div className="flex flex-wrap gap-1">
-          {(submission.tags || []).slice(0, 3).map((tag, index) => (
-            <Badge
-              key={index}
-              variant="outline"
-              className={`${getTagColor(tag)} text-xs px-1.5 py-0.5`}
-            >
-              {tag}
-            </Badge>
-          ))}
-          {(submission.tags || []).length > 3 && (
-            <Badge variant="outline" className="text-xs px-1.5 py-0.5 bg-gray-100 text-gray-600">
-              +{(submission.tags || []).length - 3}
-            </Badge>
-          )}
-        </div>
-
-        <Select
-          value={status}
-          onValueChange={onChangeStatus}
-          aria-label="Change status"
-        >
-          <SelectTrigger className="w-[160px]">
-            <SelectValue />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="new">new</SelectItem>
-            <SelectItem value="lead">lead</SelectItem>
-            <SelectItem value="client">client</SelectItem>
-            <SelectItem value="closed">closed</SelectItem>
-          </SelectContent>
-        </Select>
-
-        <Button
-          className="w-[200px] justify-self-end"
-          onClick={onLlmAction}
-          disabled={loadingSuggestions.has(submission.id)}
-          aria-label={`${getLlmActionLabel(status)} for ${submission.first_name} ${submission.last_name}`}
-        >
-          {loadingSuggestions.has(submission.id) ? 'Loading...' : getLlmActionLabel(status)}
-        </Button>
-      </div>
+  const handleStatusChange = (id: string, status: string) => {
+    setSubmissions((prev) =>
+      prev.map((s) =>
+        s.id === id ? { ...s, status } : s
+      )
     );
   };
+
+  const onLlmAction = (submission: Submission) => {
+    if (submission.status === 'new') {
+      setSelectedSubmission(submission);
+      setDraftDialogOpen(true);
+    } else {
+      // For other statuses, open NextStepsDialog
+      setSelectedSubmission(submission);
+      setNextStepsDialogOpen(true);
+    }
+  };
+
 
   return (
     <div className="min-h-screen bg-muted/30">
@@ -412,13 +252,33 @@ export default function Dashboard() {
                                 >
                                   Edit
                                 </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteResource(resource.id, resource.title)}
-                                >
-                                  Delete
-                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => setDeleteResourceDialog({ open: true, resource })}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Resource</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete "{resource.title}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setDeleteResourceDialog({ open: false, resource: null })}>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteResource}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -496,13 +356,33 @@ export default function Dashboard() {
                                 >
                                   Edit
                                 </Button>
-                                <Button
-                                  variant="destructive"
-                                  size="sm"
-                                  onClick={() => handleDeleteCoach(coach.id, coach.name)}
-                                >
-                                  Delete
-                                </Button>
+                                <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                    <Button
+                                      variant="destructive"
+                                      size="sm"
+                                      onClick={() => setDeleteCoachDialog({ open: true, coach })}
+                                    >
+                                      Delete
+                                    </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                      <AlertDialogTitle>Delete Coach</AlertDialogTitle>
+                                      <AlertDialogDescription>
+                                        Are you sure you want to delete coach "{coach.name}"? This action cannot be undone.
+                                      </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                      <AlertDialogCancel onClick={() => setDeleteCoachDialog({ open: false, coach: null })}>
+                                        Cancel
+                                      </AlertDialogCancel>
+                                      <AlertDialogAction onClick={handleDeleteCoach}>
+                                        Delete
+                                      </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                  </AlertDialogContent>
+                                </AlertDialog>
                               </div>
                             </TableCell>
                           </TableRow>
@@ -579,7 +459,17 @@ export default function Dashboard() {
 
                     {/* Submission Rows */}
                     {filteredSubmissions.map((submission) => (
-                      <SubmissionRow key={submission.id} submission={submission} />
+                      <SubmissionRow
+                        key={submission.id}
+                        submission={submission}
+                        onClick={() => {
+                          setSelectedSubmission(submission);
+                          setDetailsDialogOpen(true);
+                        }}
+                        onLlmAction={() => onLlmAction(submission)}
+                        loadingSuggestions={loadingSuggestions}
+                        onStatusChange={handleStatusChange}
+                      />
                     ))}
                   </div>
                 )}

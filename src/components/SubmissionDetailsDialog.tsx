@@ -19,24 +19,10 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { useToast } from '@/hooks/use-toast';
-
-interface Submission {
-  id: string;
-  created_at: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  company: string | null;
-  role: string | null;
-  interest_area: string | null;
-  goals: string | null;
-  status: string;
-  notes: string | null;
-  tags: string[];
-  resurface_date: string | null;
-  deleted_at: string | null;
-}
+import type { Submission } from '@/lib/types';
+import { submissionsApi } from '@/lib/api';
 
 
 
@@ -70,26 +56,22 @@ export function SubmissionDetailsDialog({
     setIsUpdating(true);
     const newTags = [...currentSubmission.tags, tag];
 
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ tags: newTags })
-      .eq('id', currentSubmission.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Failed to add tag: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await submissionsApi.updateTags(currentSubmission.id, newTags);
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, tags: newTags });
-      
+
       toast({
         title: "Tag Added",
         description: `Added "${tag}" to ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to add tag: ${error.message}`,
+        variant: "destructive",
+      });
     }
     setIsUpdating(false);
   };
@@ -98,26 +80,22 @@ export function SubmissionDetailsDialog({
     setIsUpdating(true);
     const newTags = currentSubmission.tags.filter(tag => tag !== tagToRemove);
 
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ tags: newTags })
-      .eq('id', currentSubmission.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Failed to remove tag: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await submissionsApi.updateTags(currentSubmission.id, newTags);
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, tags: newTags });
-      
+
       toast({
         title: "Tag Removed",
         description: `Removed "${tagToRemove}" from ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to remove tag: ${error.message}`,
+        variant: "destructive",
+      });
     }
     setIsUpdating(false);
   };
@@ -126,18 +104,8 @@ export function SubmissionDetailsDialog({
     if (currentSubmission.tags.length === 0) return;
 
     setIsUpdating(true);
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ tags: [] })
-      .eq('id', currentSubmission.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Failed to clear tags: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await submissionsApi.updateTags(currentSubmission.id, []);
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, tags: [] });
 
@@ -146,6 +114,12 @@ export function SubmissionDetailsDialog({
         description: `Removed all tags from ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to clear tags: ${error.message}`,
+        variant: "destructive",
+      });
     }
     setIsUpdating(false);
   };
@@ -154,18 +128,8 @@ export function SubmissionDetailsDialog({
     setIsUpdating(true);
     const resurfaceDate = dateValue ? new Date(dateValue).toISOString() : null;
 
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ resurface_date: resurfaceDate })
-      .eq('id', currentSubmission.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Failed to update resurface date: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await submissionsApi.updateResurfaceDate(currentSubmission.id, resurfaceDate);
       // Update local state immediately for live updates
       setCurrentSubmission({ ...currentSubmission, resurface_date: resurfaceDate });
 
@@ -174,34 +138,32 @@ export function SubmissionDetailsDialog({
         description: `Updated resurface date for ${currentSubmission.first_name} ${currentSubmission.last_name}`,
       });
       onUpdate();
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to update resurface date: ${error.message}`,
+        variant: "destructive",
+      });
     }
     setIsUpdating(false);
   };
 
   const handleDelete = async () => {
-    if (!confirm(`Are you sure you want to delete the submission for ${currentSubmission.first_name} ${currentSubmission.last_name}? This will hide it from the dashboard but keep the data.`)) {
-      return;
-    }
-
     setIsUpdating(true);
-    const { error } = await supabase
-      .from('contact_submissions')
-      .update({ deleted_at: new Date().toISOString() })
-      .eq('id', currentSubmission.id);
-
-    if (error) {
-      toast({
-        title: "Error",
-        description: `Failed to delete submission: ${error.message}`,
-        variant: "destructive",
-      });
-    } else {
+    try {
+      await submissionsApi.softDelete(currentSubmission.id);
       toast({
         title: "Submission Deleted",
         description: `Submission for ${currentSubmission.first_name} ${currentSubmission.last_name} has been deleted`,
       });
       onUpdate();
       onOpenChange(false);
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: `Failed to delete submission: ${error.message}`,
+        variant: "destructive",
+      });
     }
     setIsUpdating(false);
   };
@@ -391,15 +353,32 @@ export function SubmissionDetailsDialog({
 
         {/* Action Buttons */}
         <div className="flex justify-between pt-4 border-t">
-          <Button
-            variant="destructive"
-            onClick={handleDelete}
-            disabled={isUpdating}
-            className="flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            Delete
-          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button
+                variant="destructive"
+                disabled={isUpdating}
+                className="flex items-center gap-2"
+              >
+                <Trash2 className="h-4 w-4" />
+                Delete
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Delete Submission</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Are you sure you want to delete the submission for {currentSubmission.first_name} {currentSubmission.last_name}? This will hide it from the dashboard but keep the data.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancel</AlertDialogCancel>
+                <AlertDialogAction onClick={handleDelete}>
+                  Delete
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
           <Button
             onClick={() => onOpenChange(false)}
             disabled={isUpdating}

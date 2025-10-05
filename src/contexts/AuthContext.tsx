@@ -1,7 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import { User, Session } from '@supabase/supabase-js';
 import { supabase } from '@/lib/supabase';
-import CSRFProtection from '@/lib/csrf';
 
 interface AuthContextType {
   user: User | null;
@@ -30,13 +29,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        // Generate CSRF token on login
-        CSRFProtection.generateToken();
-      } else {
-        // Clear CSRF token on logout
-        CSRFProtection.clearToken();
-      }
       setLoading(false);
     });
 
@@ -53,8 +45,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    // Clear CSRF token on logout
-    CSRFProtection.clearToken();
   };
 
   return (
