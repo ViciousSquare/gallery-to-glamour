@@ -69,7 +69,7 @@ export const DraftIntroductionDialog = ({ open, onOpenChange, submission }: Draf
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-xl max-h-[75vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle>Draft Introduction Email</DialogTitle>
           <DialogDescription>
@@ -119,7 +119,7 @@ export const DraftIntroductionDialog = ({ open, onOpenChange, submission }: Draf
               <Textarea
                 value={draftEmail}
                 onChange={(e) => setDraftEmail(e.target.value)}
-                className="min-h-[300px] font-mono text-sm"
+                className="min-h-[250px] font-mono text-sm"
               />
               {cost && (
                 <p className="text-xs text-muted-foreground">

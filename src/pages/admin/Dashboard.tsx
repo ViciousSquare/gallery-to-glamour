@@ -1,6 +1,7 @@
-import { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useEffect, useState, useRef } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useAuth } from '@/contexts/AuthContext';
+import { analytics, AnalyticsMetrics } from '@/analytics';
 import { supabase } from '@/lib/supabase';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
@@ -41,13 +42,17 @@ const getLlmActionLabel = (status: string) => {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const { user, loading, signOut } = useAuth();
+  const hasTrackedView = useRef(false);
   const [resources, setResources] = useState<Resource[]>([]);
   const [coaches, setCoaches] = useState<Coach[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [loadingResources, setLoadingResources] = useState(true);
   const [loadingCoaches, setLoadingCoaches] = useState(true);
   const [loadingSubmissions, setLoadingSubmissions] = useState(true);
+  const [analyticsMetrics, setAnalyticsMetrics] = useState<AnalyticsMetrics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(true);
   const [draftDialogOpen, setDraftDialogOpen] = useState(false);
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
@@ -58,6 +63,8 @@ export default function Dashboard() {
   const [deleteResourceDialog, setDeleteResourceDialog] = useState<{ open: boolean; resource: Resource | null }>({ open: false, resource: null });
   const [deleteCoachDialog, setDeleteCoachDialog] = useState<{ open: boolean; coach: Coach | null }>({ open: false, coach: null });
 
+  const defaultTab = searchParams.get('tab') || 'analytics';
+
   // Filter submissions based on status
   const filteredSubmissions = submissions.filter(submission => {
     if (statusFilter === 'all') return true;
@@ -65,9 +72,16 @@ export default function Dashboard() {
   });
 
   useEffect(() => {
+    if (!hasTrackedView.current) {
+      analytics.track('Admin Dashboard Viewed');
+      console.log('📊 Dashboard: Sending test event to PostHog');
+      analytics.track('Dashboard Test Event', { timestamp: new Date().toISOString() });
+      hasTrackedView.current = true;
+    }
     fetchResources();
     fetchCoaches();
     fetchSubmissions();
+    fetchAnalytics();
   }, []);
 
   const fetchResources = async () => {
@@ -110,6 +124,20 @@ export default function Dashboard() {
       });
     }
     setLoadingSubmissions(false);
+  };
+
+  const fetchAnalytics = async () => {
+    setLoadingAnalytics(true);
+    try {
+      const metrics = await analytics.fetchInsights();
+      setAnalyticsMetrics(metrics);
+    } catch (error: any) {
+      console.error('Error fetching analytics:', error);
+      toast.error("Error fetching analytics", {
+        description: error.message
+      });
+    }
+    setLoadingAnalytics(false);
   };
 
 
@@ -185,21 +213,243 @@ export default function Dashboard() {
 
       {/* Main Content */}
       <main className="container mx-auto px-4 py-8">
-        <Tabs defaultValue="resources" className="w-full">
-          <TabsList className="mb-8">
-            <TabsTrigger value="resources">Resources</TabsTrigger>
-            <TabsTrigger value="coaches">Coaches</TabsTrigger>
-            <TabsTrigger value="submissions">Submissions</TabsTrigger>
-          </TabsList>
+        <Tabs value={defaultTab} onValueChange={(value) => {
+          const newSearchParams = new URLSearchParams(searchParams);
+          newSearchParams.set('tab', value);
+          navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+        }} className="w-full">
+           <TabsList className="mb-8">
+             <TabsTrigger value="analytics">Analytics</TabsTrigger>
+             <TabsTrigger value="resources">Resources</TabsTrigger>
+             <TabsTrigger value="coaches">Coaches</TabsTrigger>
+             <TabsTrigger value="submissions">Submissions</TabsTrigger>
+           </TabsList>
+
+           {/* Analytics Tab */}
+           <TabsContent value="analytics">
+             {/* Summary Cards */}
+             <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-7 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Resources</CardTitle>
+              <Mail className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{resources.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {resources.filter(r => r.featured).length} featured
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Active Coaches</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{coaches.filter(c => c.active).length}</div>
+              <p className="text-xs text-muted-foreground">
+                of {coaches.length} total coaches
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Contact Submissions</CardTitle>
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{submissions.length}</div>
+              <p className="text-xs text-muted-foreground">
+                {submissions.filter(s => s.status === 'new').length} new submissions
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Page Views (30d)</CardTitle>
+              <Mail className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingAnalytics ? '...' : analyticsMetrics?.totalPageViews || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                {loadingAnalytics ? 'Loading...' : `${analyticsMetrics?.uniqueUsers || 0} unique users`}
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Admin Views (30d)</CardTitle>
+              <MessageSquare className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingAnalytics ? '...' : analyticsMetrics?.adminDashboardViews || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                dashboard visits
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Login Successes (30d)</CardTitle>
+              <Lightbulb className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingAnalytics ? '...' : analyticsMetrics?.loginSuccesses || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                successful logins
+              </p>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Site Entries (30d)</CardTitle>
+              <Mail className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">
+                {loadingAnalytics ? '...' : analyticsMetrics?.siteEntries || 0}
+              </div>
+              <p className="text-xs text-muted-foreground">
+                unique site visits
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Traffic Sources */}
+        {!loadingAnalytics && (analyticsMetrics?.topReferrers?.length || analyticsMetrics?.topUtmSources?.length) && (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+            {analyticsMetrics?.topReferrers?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top Referrers (30d)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {analyticsMetrics.topReferrers.slice(0, 5).map((referrer, index) => (
+                      <div key={referrer.domain} className="flex justify-between items-center">
+                        <span className="text-sm">{referrer.domain}</span>
+                        <Badge variant="secondary">{referrer.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+            {analyticsMetrics?.topUtmSources?.length > 0 && (
+              <Card>
+                <CardHeader>
+                  <CardTitle>Top UTM Sources (30d)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-2">
+                    {analyticsMetrics.topUtmSources.slice(0, 5).map((source, index) => (
+                      <div key={source.source} className="flex justify-between items-center">
+                        <span className="text-sm">{source.source}</span>
+                        <Badge variant="secondary">{source.count}</Badge>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+          </div>
+        )}
+
+        {/* Recent Site Entries with UTM Details */}
+        {!loadingAnalytics && (
+          <Card className="mb-8">
+            <CardHeader>
+              <CardTitle>Recent Site Entries (30d)</CardTitle>
+              <p className="text-sm text-muted-foreground">Detailed view of recent visitors with UTM parameters</p>
+            </CardHeader>
+            <CardContent>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Time</TableHead>
+                      <TableHead>Page</TableHead>
+                      <TableHead>Referrer</TableHead>
+                      <TableHead>UTM Source</TableHead>
+                      <TableHead>UTM Medium</TableHead>
+                      <TableHead>UTM Campaign</TableHead>
+                      <TableHead>UTM Term</TableHead>
+                      <TableHead>UTM Content</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {analyticsMetrics?.recentEntries?.length > 0 ? (
+                      analyticsMetrics.recentEntries.map((entry, index) => (
+                        <TableRow key={index}>
+                          <TableCell className="text-sm">
+                            {new Date(entry.timestamp).toLocaleString()}
+                          </TableCell>
+                          <TableCell className="text-sm font-mono">
+                            {entry.entry_page}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.referrer ? (
+                              <span className="truncate max-w-32 block" title={entry.referrer}>
+                                {entry.referrer.length > 30 ? `${entry.referrer.substring(0, 30)}...` : entry.referrer}
+                              </span>
+                            ) : (
+                              <span className="text-muted-foreground">direct</span>
+                            )}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.utm_source || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.utm_medium || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.utm_campaign || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.utm_term || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                          <TableCell className="text-sm">
+                            {entry.utm_content || <span className="text-muted-foreground">-</span>}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    ) : (
+                      <TableRow>
+                        <TableCell colSpan={8} className="text-center py-8 text-muted-foreground">
+                          No site entries yet. Visit your site with UTM parameters to see data here.
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
+          </TabsContent>
 
           {/* Resources Tab */}
           <TabsContent value="resources">
             <Card>
               <CardHeader className="flex flex-row items-center justify-between">
                 <CardTitle>Resources</CardTitle>
-                <Button onClick={() => navigate('/admin/resources/new')}>
-                  Add New Resource
-                </Button>
+                <div className="flex gap-2">
+                  <Button variant="outline" onClick={() => navigate('/admin/resources/import')}>
+                    Bulk Import
+                  </Button>
+                  <Button onClick={() => navigate('/admin/resources/new')}>
+                    Add New Resource
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingResources ? (

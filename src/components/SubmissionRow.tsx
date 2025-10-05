@@ -107,7 +107,10 @@ export function SubmissionRow({ submission, onClick, onLlmAction, loadingSuggest
 
       <Button
         className="w-[200px] justify-self-end"
-        onClick={onLlmAction}
+        onClick={(e) => {
+          e.stopPropagation();
+          onLlmAction();
+        }}
         disabled={loadingSuggestions.has(submission.id)}
         aria-label={`${getLlmActionLabel(status)} for ${submission.first_name} ${submission.last_name}`}
       >

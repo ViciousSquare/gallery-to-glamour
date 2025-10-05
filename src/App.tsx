@@ -6,6 +6,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AuthProvider } from "@/contexts/AuthContext";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 import ErrorBoundary from "@/components/ErrorBoundary";
+import PageTracker from "@/components/PageTracker";
 import Index from "./pages/Index";
 import NotFound from "./pages/NotFound";
 import PrivacyPolicy from "./pages/PrivacyPolicy";
@@ -14,6 +15,7 @@ import Login from "./pages/admin/Login";
 import AdminDashboard from "./pages/admin/Dashboard";
 import AddResource from "./pages/admin/AddResource";
 import EditResource from "./pages/admin/EditResource";
+import BulkImportResources from "./pages/admin/BulkImportResources";
 import AddCoach from "./pages/admin/AddCoach";
 import EditCoach from "./pages/admin/EditCoach";
 import SecurityTest from "./pages/SecurityTest";
@@ -28,6 +30,7 @@ const App = () => (
         <Sonner />
         <BrowserRouter>
           <AuthProvider>
+            <PageTracker />
             <Routes>
               <Route path="/" element={<Index />} />
               <Route path="/privacy" element={<PrivacyPolicy />} />
@@ -54,6 +57,14 @@ const App = () => (
                 element={
                   <ProtectedRoute>
                     <EditResource />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/resources/import"
+                element={
+                  <ProtectedRoute>
+                    <BulkImportResources />
                   </ProtectedRoute>
                 }
               />

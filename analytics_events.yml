@@ -1,0 +1,11 @@
+events:
+  - name: App Page Viewed
+    props: [page_name, pathname, search]
+  - name: Login Succeeded
+    props: []
+  - name: Admin Dashboard Viewed
+    props: []
+identity:
+  user_traits: [email]
+  group_type: null
+  group_traits: []
