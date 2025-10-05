@@ -14,13 +14,15 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { DraftIntroductionDialog } from "@/components/DraftIntroductionDialog";
 import { SubmissionDetailsDialog } from '@/components/SubmissionDetailsDialog';
 import { NotesDialog } from '@/components/NotesDialog';
 
-import { Mail, MessageSquare } from "lucide-react";
+import { Mail, MessageSquare, Lightbulb } from "lucide-react";
 import { getTagColor } from '@/lib/constants';
+import { toast } from "sonner";
 
 interface Resource {
   id: string;
@@ -74,6 +76,14 @@ export default function Dashboard() {
   const [detailsDialogOpen, setDetailsDialogOpen] = useState(false);
   const [notesDialogOpen, setNotesDialogOpen] = useState(false);
   const [selectedSubmission, setSelectedSubmission] = useState<Submission | null>(null);
+  const [loadingSuggestions, setLoadingSuggestions] = useState<Set<string>>(new Set());
+  const [statusFilter, setStatusFilter] = useState<string>('all');
+
+  // Filter submissions based on status
+  const filteredSubmissions = submissions.filter(submission => {
+    if (statusFilter === 'all') return true;
+    return submission.status === statusFilter;
+  });
 
   useEffect(() => {
     fetchResources();
@@ -141,6 +151,62 @@ export default function Dashboard() {
           s.id === id ? { ...s, status: newStatus } : s
         )
       );
+    }
+  };
+
+  const handleSuggestAction = async (submission: Submission) => {
+    // Add to loading set
+    setLoadingSuggestions(prev => new Set(prev).add(submission.id));
+
+    try {
+      // Fetch notes for this submission
+      const { data: notes, error: notesError } = await supabase
+        .from('submission_notes')
+        .select('*')
+        .eq('submission_id', submission.id)
+        .order('created_at', { ascending: true });
+
+      if (notesError) {
+        throw new Error(`Error fetching notes: ${notesError.message}`);
+      }
+
+      // Call the edge function
+      const { data, error } = await supabase.functions.invoke('suggest-next-action', {
+        body: {
+          submission,
+          notes: notes || []
+        }
+      });
+
+      if (error) {
+        throw new Error(`Error getting suggestion: ${error.message}`);
+      }
+
+      // Show suggestion in toast with copy functionality
+      toast.success("Action Suggestion", {
+        description: data.suggestion,
+        duration: 10000,
+        action: {
+          label: "Copy",
+          onClick: () => {
+            navigator.clipboard.writeText(data.suggestion);
+            toast.success("Copied to clipboard!");
+          }
+        }
+      });
+
+    } catch (error) {
+      console.error('Error getting action suggestion:', error);
+      toast.error("Failed to get suggestion", {
+        description: error instanceof Error ? error.message : "Unknown error occurred"
+      });
+    } finally {
+      // Remove from loading set
+      setLoadingSuggestions(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(submission.id);
+        return newSet;
+      });
     }
   };
 
@@ -378,13 +444,50 @@ export default function Dashboard() {
             <Card>
               <CardHeader>
                 <CardTitle>Contact Submissions</CardTitle>
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    variant={statusFilter === 'all' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('all')}
+                  >
+                    All ({submissions.length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'new' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('new')}
+                  >
+                    New ({submissions.filter(s => s.status === 'new').length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'lead' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('lead')}
+                  >
+                    Lead ({submissions.filter(s => s.status === 'lead').length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'client' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('client')}
+                  >
+                    Client ({submissions.filter(s => s.status === 'client').length})
+                  </Button>
+                  <Button
+                    variant={statusFilter === 'closed' ? 'default' : 'outline'}
+                    size="sm"
+                    onClick={() => setStatusFilter('closed')}
+                  >
+                    Closed ({submissions.filter(s => s.status === 'closed').length})
+                  </Button>
+                </div>
               </CardHeader>
               <CardContent>
                 {loadingSubmissions ? (
                   <div className="text-center py-8">Loading submissions...</div>
-                ) : submissions.length === 0 ? (
+                ) : filteredSubmissions.length === 0 ? (
                   <div className="text-center py-8 text-muted-foreground">
-                    No submissions found.
+                    {statusFilter === 'all' ? 'No submissions found.' : `No ${statusFilter} submissions found.`}
                   </div>
                 ) : (
                   <div className="overflow-x-auto">
@@ -400,11 +503,10 @@ export default function Dashboard() {
                           <TableHead>Tags</TableHead>
                           <TableHead>Status</TableHead>
                           <TableHead>Actions</TableHead>
-                          <TableHead>Draft Email</TableHead>
                         </TableRow>
                       </TableHeader>
                       <TableBody>
-                        {submissions.map((submission) => (
+                        {filteredSubmissions.map((submission) => (
                           <TableRow 
                             key={submission.id}
                             className="cursor-pointer hover:bg-gray-50"
@@ -449,8 +551,15 @@ export default function Dashboard() {
                               <Badge 
                                 variant={
                                   submission.status === 'new' ? 'default' :
-                                  submission.status === 'contacted' ? 'secondary' :
+                                  submission.status === 'lead' ? 'secondary' :
+                                  submission.status === 'client' ? 'default' :
                                   submission.status === 'closed' ? 'outline' : 'default'
+                                }
+                                className={
+                                  submission.status === 'new' ? 'bg-blue-100 text-blue-800' :
+                                  submission.status === 'lead' ? 'bg-yellow-100 text-yellow-800' :
+                                  submission.status === 'client' ? 'bg-green-100 text-green-800' :
+                                  submission.status === 'closed' ? 'bg-gray-100 text-gray-800' : ''
                                 }
                               >
                                 {submission.status}
@@ -470,43 +579,49 @@ export default function Dashboard() {
                                   <MessageSquare className="mr-1 h-3 w-3" />
                                   Notes
                                 </Button>
+                                <Select
+                                  value={submission.status}
+                                  onValueChange={(newStatus) => {
+                                    handleUpdateSubmissionStatus(submission.id, newStatus);
+                                  }}
+                                >
+                                  <SelectTrigger className="w-24 h-8" onClick={(e) => e.stopPropagation()}>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="new">New</SelectItem>
+                                    <SelectItem value="lead">Lead</SelectItem>
+                                    <SelectItem value="client">Client</SelectItem>
+                                    <SelectItem value="closed">Closed</SelectItem>
+                                  </SelectContent>
+                                </Select>
                                 <Button
                                   variant="outline"
                                   size="sm"
                                   onClick={(e) => {
                                     e.stopPropagation();
-                                    handleUpdateSubmissionStatus(submission.id, 'contacted');
+                                    if (submission.status === 'new') {
+                                      setSelectedSubmission(submission);
+                                      setDraftDialogOpen(true);
+                                    } else {
+                                      handleSuggestAction(submission);
+                                    }
                                   }}
-                                  disabled={submission.status === 'contacted'}
+                                  disabled={loadingSuggestions.has(submission.id)}
                                 >
-                                  Mark Contacted
-                                </Button>
-                                <Button
-                                  variant="outline"
-                                  size="sm"
-                                  onClick={(e) => {
-                                    e.stopPropagation();
-                                    handleUpdateSubmissionStatus(submission.id, 'closed');
-                                  }}
-                                  disabled={submission.status === 'closed'}
-                                >
-                                  Mark Completed
+                                  {submission.status === 'new' ? (
+                                    <>
+                                      <Mail className="mr-1 h-3 w-3" />
+                                      {loadingSuggestions.has(submission.id) ? 'Loading...' : 'Draft Email'}
+                                    </>
+                                  ) : (
+                                    <>
+                                      <Lightbulb className="mr-1 h-3 w-3" />
+                                      {loadingSuggestions.has(submission.id) ? 'Loading...' : 'Suggest Action'}
+                                    </>
+                                  )}
                                 </Button>
                               </div>
-                            </TableCell>
-                            <TableCell>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  setSelectedSubmission(submission);
-                                  setDraftDialogOpen(true);
-                                }}
-                              >
-                                <Mail className="mr-2 h-4 w-4" />
-                                Draft Intro
-                              </Button>
                             </TableCell>
                           </TableRow>
                         ))}
