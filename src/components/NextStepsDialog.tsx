@@ -32,7 +32,7 @@ export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: 
    const [editedTags, setEditedTags] = useState(submission.tags?.join(', ') || "");
    const [furtherContext, setFurtherContext] = useState("");
 
-   // Reset states when submission changes
+   // Reset states when submission or actionType changes
    useEffect(() => {
      setSuggestion("");
      setCost(null);
@@ -46,7 +46,7 @@ export const NextStepsDialog = ({ open, onOpenChange, submission, actionType }: 
      setEditedGoals(submission.goals || "");
      setEditedTags(submission.tags?.join(', ') || "");
      setFurtherContext("");
-   }, [submission.id]);
+   }, [submission.id, actionType]);
 
    const generateSuggestion = async () => {
     setLoading(true);

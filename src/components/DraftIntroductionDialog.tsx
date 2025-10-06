@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,6 +17,13 @@ export const DraftIntroductionDialog = ({ open, onOpenChange, submission }: Draf
   const [draftEmail, setDraftEmail] = useState("");
   const [cost, setCost] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  // Reset states when submission changes
+  useEffect(() => {
+    setDraftEmail("");
+    setCost(null);
+    setError(null);
+  }, [submission.id]);
 
   const generateDraft = async () => {
     setLoading(true);

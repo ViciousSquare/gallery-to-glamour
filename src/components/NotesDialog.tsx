@@ -67,10 +67,15 @@ export function NotesDialog({ open, onOpenChange, submission }: NotesDialogProps
   const [searchTerm, setSearchTerm] = useState('');
   const [showQuickAdd, setShowQuickAdd] = useState(false);
 
-  // Fetch notes when dialog opens
+  // Fetch notes when dialog opens and reset state when switching submissions
   useEffect(() => {
     if (open && submission) {
       fetchNotes();
+      // Reset note input state to prevent data from previous submission carrying over
+      setNewNote('');
+      setSelectedNoteType('general');
+      setShowQuickAdd(false);
+      setSearchTerm('');
     }
   }, [open, submission]);
 

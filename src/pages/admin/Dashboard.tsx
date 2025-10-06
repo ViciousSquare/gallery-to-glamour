@@ -27,11 +27,25 @@ import DataErrorBoundary from '@/components/DataErrorBoundary';
 import { TableSkeleton } from '@/components/TableSkeleton';
 import { Skeleton } from '@/components/ui/skeleton';
 
-import { Mail, MessageSquare, Lightbulb } from "lucide-react";
+import { Mail, MessageSquare, Lightbulb, BarChart3, FileText, Users, UserCheck, FolderOpen } from "lucide-react";
 import { getTagColor } from '@/lib/constants';
 import { toast } from "sonner";
 import type { Resource, Coach, Submission } from '@/lib/types';
 import { resourcesApi, coachesApi, submissionsApi } from '@/lib/api';
+import {
+  SidebarProvider,
+  Sidebar,
+  SidebarContent,
+  SidebarHeader,
+  SidebarMenu,
+  SidebarMenuItem,
+  SidebarMenuButton,
+  SidebarGroup,
+  SidebarGroupLabel,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
+} from "@/components/ui/sidebar";
 
 const getLlmActionLabel = (status: string) => {
   switch (status) {
@@ -97,14 +111,14 @@ export default function Dashboard() {
 
   useEffect(() => {
     if (submissions.length > 0 && !hasShownNewAlert.current) {
-      const newCount = submissions.filter(s => s.status === 'new').length;
+      const newCount = submissions.filter(s => s.status === 'new' && !s.resurface_date).length;
       if (newCount > 0) {
-        toast(`You have ${newCount} new submission${newCount > 1 ? 's' : ''}`, {
+        toast(`You have ${newCount} new lead${newCount > 1 ? 's' : ''}`, {
           action: {
             label: "View",
             onClick: () => {
               setStatusFilter('new');
-              navigate('/admin?tab=submissions', { replace: true });
+              navigate('/admin?tab=crm', { replace: true });
             }
           }
         });
@@ -119,12 +133,12 @@ export default function Dashboard() {
         s.resurface_date && new Date(s.resurface_date) <= new Date()
       ).length;
       if (revisitCount > 0) {
-        toast(`You have ${revisitCount} submission${revisitCount > 1 ? 's' : ''} to revisit`, {
+        toast(`You have ${revisitCount} lead${revisitCount > 1 ? 's' : ''} to revisit`, {
           action: {
             label: "View",
             onClick: () => {
               setStatusFilter('revisit');
-              navigate('/admin?tab=submissions', { replace: true });
+              navigate('/admin?tab=crm', { replace: true });
             }
           }
         });
@@ -248,35 +262,96 @@ export default function Dashboard() {
 
 
   return (
-    <div className="min-h-screen bg-muted/30">
-      {/* Header */}
-      <header className="bg-background border-b border-border">
-        <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-          <h1 className="text-2xl font-bold">Admin Dashboard</h1>
-          <div className="flex items-center gap-4">
+    <SidebarProvider>
+      <div className="min-h-screen bg-muted/30 flex">
+        <Sidebar>
+          <SidebarHeader>
+            <h2 className="px-4 py-2 text-lg font-semibold">Admin Dashboard</h2>
+          </SidebarHeader>
+          <SidebarContent>
+            <SidebarMenu>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={defaultTab === 'analytics'}
+                  onClick={() => {
+                    const newSearchParams = new URLSearchParams(searchParams);
+                    newSearchParams.set('tab', 'analytics');
+                    navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+                  }}
+                >
+                  <BarChart3 className="w-4 h-4" />
+                  <span>Analytics</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+              <SidebarGroup>
+                <SidebarGroupLabel>
+                  <FolderOpen className="w-4 h-4" />
+                  Manage Content
+                </SidebarGroupLabel>
+                <SidebarMenuSub>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      isActive={defaultTab === 'resources'}
+                      onClick={() => {
+                        const newSearchParams = new URLSearchParams(searchParams);
+                        newSearchParams.set('tab', 'resources');
+                        navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+                      }}
+                    >
+                      <FileText className="w-4 h-4" />
+                      <span>Resources</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                  <SidebarMenuSubItem>
+                    <SidebarMenuSubButton
+                      isActive={defaultTab === 'coaches'}
+                      onClick={() => {
+                        const newSearchParams = new URLSearchParams(searchParams);
+                        newSearchParams.set('tab', 'coaches');
+                        navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+                      }}
+                    >
+                      <Users className="w-4 h-4" />
+                      <span>Coaches</span>
+                    </SidebarMenuSubButton>
+                  </SidebarMenuSubItem>
+                </SidebarMenuSub>
+              </SidebarGroup>
+              <SidebarMenuItem>
+                <SidebarMenuButton
+                  isActive={defaultTab === 'crm'}
+                  onClick={() => {
+                    const newSearchParams = new URLSearchParams(searchParams);
+                    newSearchParams.set('tab', 'crm');
+                    navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+                  }}
+                >
+                  <UserCheck className="w-4 h-4" />
+                  <span>CRM</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+            </SidebarMenu>
+          </SidebarContent>
+        </Sidebar>
+
+        <main className="flex-1">
+          {/* Header */}
+          <header className="bg-background border-b border-border px-6 py-4 flex justify-between items-center">
             <div className="text-right">
               <div className="text-sm font-medium">{user?.email}</div>
             </div>
             <Button variant="outline" onClick={handleSignOut}>
               Sign Out
             </Button>
-          </div>
-        </div>
-      </header>
+          </header>
 
-      {/* Main Content */}
-      <main className="container mx-auto px-4 py-8">
-        <Tabs value={defaultTab} onValueChange={(value) => {
-          const newSearchParams = new URLSearchParams(searchParams);
-          newSearchParams.set('tab', value);
-          navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
-        }} className="w-full">
-           <TabsList className="mb-8">
-             <TabsTrigger value="analytics">Analytics</TabsTrigger>
-             <TabsTrigger value="resources">Resources</TabsTrigger>
-             <TabsTrigger value="coaches">Coaches</TabsTrigger>
-             <TabsTrigger value="submissions">Submissions</TabsTrigger>
-           </TabsList>
+          {/* Main Content */}
+          <div className="p-6">
+            <Tabs value={defaultTab} onValueChange={(value) => {
+              const newSearchParams = new URLSearchParams(searchParams);
+              newSearchParams.set('tab', value);
+              navigate(`/admin?${newSearchParams.toString()}`, { replace: true });
+            }} className="w-full">
 
            {/* Analytics Tab */}
            <TabsContent value="analytics">
@@ -308,7 +383,7 @@ export default function Dashboard() {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-              <CardTitle className="text-sm font-medium">Contact Submissions</CardTitle>
+              <CardTitle className="text-sm font-medium">CRM Leads</CardTitle>
               <Lightbulb className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
@@ -702,11 +777,11 @@ export default function Dashboard() {
             </Card>
           </TabsContent>
 
-          {/* Submissions Tab */}
-          <TabsContent value="submissions">
+          {/* CRM Tab */}
+          <TabsContent value="crm">
             <Card>
               <CardHeader>
-                <CardTitle>Contact Submissions</CardTitle>
+                <CardTitle>CRM</CardTitle>
                 <div className="flex gap-2 mt-4">
                   <Button
                     variant={statusFilter === 'all' ? 'default' : 'outline'}
@@ -829,9 +904,11 @@ export default function Dashboard() {
 
 
         </Tabs>
-      </main>
-      
-      {selectedSubmission && (
+         </div>
+       </main>
+     </div>
+
+     {selectedSubmission && (
         <DraftIntroductionDialog
           open={draftDialogOpen}
           onOpenChange={setDraftDialogOpen}
@@ -861,6 +938,6 @@ export default function Dashboard() {
           actionType={selectedSubmission?.status || 'new'}
         />
       )}
-    </div>
+    </SidebarProvider>
   );
 }

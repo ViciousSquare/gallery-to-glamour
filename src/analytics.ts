@@ -82,6 +82,18 @@ class Analytics {
   page(name?: string, props?: Props) {
     if (!this.ready) return;
     posthog.capture('App Page Viewed', { page_name: name ?? document.title, ...props });
+
+    // Capture UTM parameters on every page view
+    const urlParams = new URLSearchParams(window.location.search);
+    const utmProps: Props = {};
+    if (urlParams.get('utm_source')) utmProps.utm_source = urlParams.get('utm_source');
+    if (urlParams.get('utm_medium')) utmProps.utm_medium = urlParams.get('utm_medium');
+    if (urlParams.get('utm_campaign')) utmProps.utm_campaign = urlParams.get('utm_campaign');
+    if (urlParams.get('utm_term')) utmProps.utm_term = urlParams.get('utm_term');
+    if (urlParams.get('utm_content')) utmProps.utm_content = urlParams.get('utm_content');
+    if (Object.keys(utmProps).length > 0) {
+      posthog.people.set(utmProps);
+    }
   }
 
   trackEntry() {
@@ -108,7 +120,7 @@ class Analytics {
 
     posthog.capture('$pageview', entryProps);
 
-    // Set UTM parameters as one-time properties for attribution
+    // Set UTM parameters as properties for attribution
     const utmProps: Props = {};
     if (urlParams.get('utm_source')) utmProps.utm_source = urlParams.get('utm_source');
     if (urlParams.get('utm_medium')) utmProps.utm_medium = urlParams.get('utm_medium');
@@ -116,7 +128,7 @@ class Analytics {
     if (urlParams.get('utm_term')) utmProps.utm_term = urlParams.get('utm_term');
     if (urlParams.get('utm_content')) utmProps.utm_content = urlParams.get('utm_content');
     if (Object.keys(utmProps).length > 0) {
-      posthog.people.set_once(utmProps);
+      posthog.people.set(utmProps);
     }
   }
 
